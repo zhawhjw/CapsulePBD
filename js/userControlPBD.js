@@ -199,7 +199,8 @@ export function step(RADIUS, sceneEntities, world, scene) {
     const radius_sq_init = radius_init * radius_init;
     var radius_sq = radius_sq_init;
     const dv_i = 1.;  // 1./delta_t;
-    let delta_correction_i, delta_correction_j;
+    let delta_correction_i = {"x":0, "y":0};
+    let delta_correction_j= {"x":0, "y":0};
     if (agentCentroidDist < radius_init) {
       radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
     }
@@ -218,10 +219,10 @@ export function step(RADIUS, sceneEntities, world, scene) {
     const d_sq = b_sq - a * c;
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
+
     let lengthV;
     if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
-      const clamp_tao = Math.exp(-tao * tao / C_TAO0);
-      const c_tao = clamp_tao;  //Math.abs(tao - C_TAO0);
+      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
       const tao_sq = c_tao * c_tao;
       const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
       const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
@@ -248,10 +249,148 @@ export function step(RADIUS, sceneEntities, world, scene) {
   }
 
   const C_TAU_MAX = 20;
-  const C_MAX_ACCELERATION = 0.01;
+  // const C_MAX_ACCELERATION = 0.01;
   const C_TAO0 = 20;
-  const C_LONG_RANGE_STIFF = 0.02;
+  const C_LONG_RANGE_STIFF = 0.8;
   const MAX_DELTA = 0.9;
+
+  function clamp2D(vx,vy, maxValue) {
+    const lengthV = Math.sqrt(vx * vx + vy * vy);
+    if (lengthV > maxValue) {
+      const mult = (maxValue / lengthV);
+      vx *= mult;
+      vy *= mult;
+    }
+    return {"x":vx, "y":vy}
+  }
+
+
+  function longRangeConstraintCapsule(best_i, best_j, p_best_i, p_best_j) {
+    const agentCentroidDist = distance(p_best_i.x, p_best_i.z,
+        p_best_j.x, p_best_j.z);
+
+    const radius_init = 2 * AGENTSIZE;
+    const radius_sq_init = radius_init * radius_init;
+    let radius_sq = radius_sq_init;
+    const dv_i = 1.;  // 1./delta_t;
+    let delta_correction_i = {"x":0, "y":0};
+    let delta_correction_j= {"x":0, "y":0};
+    if (agentCentroidDist < radius_init) {
+      radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
+    }
+    const v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
+    const v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
+    const x0 = best_i.x - best_j.x;
+    const y0 = best_i.z - best_j.z;
+    const v_sq = v_x * v_x + v_y * v_y;
+    const x0_sq = x0 * x0;
+    const y0_sq = y0 * y0;
+    const x_sq = x0_sq + y0_sq;
+    const a = v_sq;
+    const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
+    const b_sq = b * b;
+    const c = x_sq - radius_sq;
+    const d_sq = b_sq - a * c;
+    const d = Math.sqrt(d_sq);
+    const tao = (b - d) / a;
+
+    if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
+      const tao_sq = c_tao * c_tao;
+      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      const grad_x_j = -grad_x_i;
+      const grad_y_j = -grad_y_i;
+      const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+      const s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+
+      delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
+          s * 0.5 * grad_y_i,
+          MAX_DELTA);
+
+      delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
+          s * 0.5 * grad_y_j,
+          MAX_DELTA);
+    }
+
+    return [delta_correction_i, delta_correction_j];
+  }
+
+
+  function getBestPoint(xi, zi, xj, zj){
+
+    const iCoords = rotateLineSegment(
+        xi,
+        zi + agentLength + RADIUS,
+        xi,
+        zi - agentLength - RADIUS,
+        sceneEntities[i].agent.rotation.z
+    );
+
+    const jCoords = rotateLineSegment(
+        xj,
+        zj + agentLength + RADIUS,
+        xj,
+        zj - agentLength - RADIUS,
+        sceneEntities[j].agent.rotation.z
+    );
+
+
+    // Agent A
+    const a = {
+      tip: new THREE.Vector3(iCoords[0], 0, iCoords[1]),
+      base: new THREE.Vector3(iCoords[2], 0, iCoords[3]),
+      radius: RADIUS,
+    };
+    // Agent B
+    const b = {
+      tip: new THREE.Vector3(jCoords[0], 0, jCoords[1]),
+      base: new THREE.Vector3(jCoords[2], 0, jCoords[3]),
+      radius: RADIUS,
+    };
+
+
+    // capsule A:
+    const a_Normal = a.tip.clone().sub(a.base.clone()).normalize();
+    const a_LineEndOffset = a_Normal.clone().multiplyScalar(a.radius);
+    const a_A = a.base.clone().add(a_LineEndOffset);
+    const a_B = a.tip.clone().sub(a_LineEndOffset);
+
+    // capsule B:
+    const b_Normal = b.tip.clone().sub(b.base.clone()).normalize();
+    const b_LineEndOffset = b_Normal.clone().multiplyScalar(b.radius);
+    const b_A = b.base.clone().add(b_LineEndOffset);
+    const b_B = b.tip.clone().sub(b_LineEndOffset);
+
+    // vectors between line endpoints:
+    const v0 = b_A.clone().sub(a_A);
+    const v1 = b_B.clone().sub(a_A);
+    const v2 = b_A.clone().sub(a_B);
+    const v3 = b_B.clone().sub(a_B);
+
+    // squared distances:
+    const d0 = v0.clone().dot(v0);
+    const d1 = v1.clone().dot(v1);
+    const d2 = v2.clone().dot(v2);
+    const d3 = v3.clone().dot(v3);
+
+    // select best potential endpoint on capsule A:
+    let bestA;
+    if (d2 < d0 || d2 < d1 || d3 < d0 || d3 < d1) {
+      bestA = a_B;
+    } else {
+      bestA = a_A;
+    }
+
+    // select point on capsule B line segment nearest to best potential endpoint on A capsule:
+    const bestB = ClosestPointOnLineSegment(b_A, b_B, bestA);
+
+    // now do the same for capsule A segment:
+    bestA = ClosestPointOnLineSegment(a_A, a_B, bestB);
+
+    return [bestA, bestB, a, b]
+  }
+
 
   /*  -----------------------  */
 
@@ -262,6 +401,11 @@ export function step(RADIUS, sceneEntities, world, scene) {
     item.pz = item.z + timestep * item.vz;
     item.py = item.y + timestep * item.vy;
   });
+
+
+
+
+
 
   let pbdIters = 0;
   let isColliding;
@@ -280,93 +424,37 @@ export function step(RADIUS, sceneEntities, world, scene) {
       while (j < sceneEntities.length) {
         // collisionConstraint(sceneEntities[i],sceneEntities[j])
 
-        const iCoords = rotateLineSegment(
-          sceneEntities[i].px,
-          sceneEntities[i].pz + agentLength + RADIUS,
-          sceneEntities[i].px,
-          sceneEntities[i].pz - agentLength - RADIUS,
-          sceneEntities[i].agent.rotation.z
-        );
+        let [bestA, bestB] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
 
-        const jCoords = rotateLineSegment(
-          sceneEntities[j].px,
-          sceneEntities[j].pz + agentLength + RADIUS,
-          sceneEntities[j].px,
-          sceneEntities[j].pz - agentLength - RADIUS,
-          sceneEntities[j].agent.rotation.z
-        );
+        let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
 
+        let [delta_correction_i, delta_correction_j] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
 
-        // Agent A
-        const a = {
-          tip: new THREE.Vector2(iCoords[0], iCoords[1]),
-          base: new THREE.Vector2(iCoords[2], iCoords[3]),
-          radius: RADIUS,
-        };
-        // Agent B
-        const b = {
-          tip: new THREE.Vector2(jCoords[0], jCoords[1]),
-          base: new THREE.Vector2(jCoords[2], jCoords[3]),
-          radius: RADIUS,
-        };
+        sceneEntities[i].px += delta_correction_i.x;
+        sceneEntities[i].pz += delta_correction_i.y;
+        sceneEntities[j].px += delta_correction_j.x;
+        sceneEntities[j].pz += delta_correction_j.y;
+
+        // let penetration_normal = bestA.clone().sub(bestB);
+        // const len = penetration_normal.length();
+        // penetration_normal.divideScalar(len); // normalize
+        // const penetration_depth = RADIUS + RADIUS - len;
+        // const intersects = penetration_depth > 0;
 
 
-        // capsule A:
-        const a_Normal = a.tip.clone().sub(a.base.clone()).normalize();
-        const a_LineEndOffset = a_Normal.clone().multiplyScalar(a.radius);
-        const a_A = a.base.clone().add(a_LineEndOffset);
-        const a_B = a.tip.clone().sub(a_LineEndOffset);
-
-        // capsule B:
-        const b_Normal = b.tip.clone().sub(b.base.clone()).normalize();
-        const b_LineEndOffset = b_Normal.clone().multiplyScalar(b.radius);
-        const b_A = b.base.clone().add(b_LineEndOffset);
-        const b_B = b.tip.clone().sub(b_LineEndOffset);
-
-        // vectors between line endpoints:
-        const v0 = b_A.clone().sub(a_A);
-        const v1 = b_B.clone().sub(a_A);
-        const v2 = b_A.clone().sub(a_B);
-        const v3 = b_B.clone().sub(a_B);
-
-        // squared distances:
-        const d0 = v0.clone().dot(v0);
-        const d1 = v1.clone().dot(v1);
-        const d2 = v2.clone().dot(v2);
-        const d3 = v3.clone().dot(v3);
-
-        // select best potential endpoint on capsule A:
-        let bestA;
-        if (d2 < d0 || d2 < d1 || d3 < d0 || d3 < d1) {
-          bestA = a_B;
-        } else {
-          bestA = a_A;
-        }
-
-        // select point on capsule B line segment nearest to best potential endpoint on A capsule:
-        const bestB = ClosestPointOnLineSegment(b_A, b_B, bestA);
-
-        // now do the same for capsule A segment:
-        bestA = ClosestPointOnLineSegment(a_A, a_B, bestB);
-
-        let penetration_normal = bestA.clone().sub(bestB);
-        const len = penetration_normal.length();
-        penetration_normal.divideScalar(len); // normalize
-        const penetration_depth = a.radius + b.radius - len;
-        const intersects = penetration_depth > 0;
-
-        if (intersects) {
-          sceneEntities[i].colliding = true;
-          sceneEntities[j].colliding = true;
-
-          sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
-          sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
-
-          sceneEntities[j].px +=
-            -1 * penetration_normal.x * 0.5 * penetration_depth;
-          sceneEntities[j].pz +=
-            -1 * penetration_normal.y * 0.5 * penetration_depth;
-        }
+        // PBD collision correction
+        // if (intersects) {
+        //   sceneEntities[i].colliding = true;
+        //   sceneEntities[j].colliding = true;
+        //
+        //   sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
+        //   sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
+        //
+        //   sceneEntities[j].px +=
+        //     -1 * penetration_normal.x * 0.5 * penetration_depth;
+        //   sceneEntities[j].pz +=
+        //     -1 * penetration_normal.y * 0.5 * penetration_depth;
+        // }
 
 
         j += 1;

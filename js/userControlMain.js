@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import * as PHY from "simplePhysics";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 import Stats from "three/addons/libs/stats.module.js";
 
@@ -152,6 +152,168 @@ function init() {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y += 0.01;
 
+
+  function testScenario(){
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: 20,
+          z: 0,
+        },
+        {
+          x: -20,
+          z: -5,
+        },
+        0.8,
+        "X"
+    );
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: -20,
+          z: 0,
+        },
+        {
+          x: 20,
+          z: 0,
+        },
+        0.8,
+        "X"
+    );
+  }
+
+  function testHallwayScenario(){
+
+    for(let i=0;i<3;i++){
+      addColumnAgentGroup(
+          agentData,
+          1,
+          RADIUS * 1.5,
+          {
+            x: 20 ,
+            z: 0 + i * 6,
+          },
+          {
+            x: -20,
+            z: 0 + i * 6,
+          },
+          0.8,
+          "X"
+      );
+
+      addColumnAgentGroup(
+          agentData,
+          1,
+          RADIUS * 4,
+          {
+            x: -20,
+            z: 0 + i * 6 - 2
+          },
+          {
+            x: 20,
+            z: 0 + i * 6  - 2
+          },
+          0.8,
+          "X"
+      );
+
+
+    }
+
+
+  }
+
+  function testCrossScenario(){
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: 20,
+          z: 0,
+        },
+        {
+          x: -20,
+          z: -5,
+        },
+        0.8,
+        "X"
+    );
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: 0,
+          z: 20,
+        },
+        {
+          x: 0,
+          z: -20,
+        },
+        0.8,
+        "X"
+    );
+  }
+  function testCrossWithDiagnoScenario(){
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: 20,
+          z: 0,
+        },
+        {
+          x: -20,
+          z: -5,
+        },
+        0.8,
+        "X"
+    );
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: -10,
+          z: 10,
+        },
+        {
+          x: 20,
+          z: -20,
+        },
+        0.8,
+        "X"
+    );
+  }
+
+  function defaultScenario(){
+    addColumnAgentGroup(
+        agentData,
+        50,
+        RADIUS * 4,
+        {
+          x: 0,
+          z: 0,
+        },
+        {
+          x: -10,
+          z: 10,
+        },
+        0.8,
+        "X"
+    );
+
+  }
+
   function addColumnAgentGroup(
     agentData,
     numAgents,
@@ -212,100 +374,12 @@ function init() {
   goalY = 20;
   world.distanceConstraints = [];
 
-  addColumnAgentGroup(
-    agentData,
-    50,
-    RADIUS * 4,
-    {
-      x: 0,
-      z: 0,
-    },
-    {
-      x: -10,
-      z: 10,
-    },
-    0.8,
-    "X"
-  );
+  // defaultScenario();
+  // testScenario()
+  // testCrossScenario();
+  // testCrossWithDiagnoScenario();
 
-  // addColumnAgentGroup(
-  //   agentData,
-  //   4,
-  //   RADIUS * 4,
-  //   {
-  //     x: 25,
-  //     z: 20,
-  //   },
-  //   {
-  //     x: -25,
-  //     z: 20,
-  //   },
-  //   0.7,
-  //   "X"
-  // );
-
-  // addColumnAgentGroup(
-  //   agentData,
-  //   4,
-  //   RADIUS * 4,
-  //   {
-  //     x: 25,
-  //     z: 10,
-  //   },
-  //   {
-  //     x: -25,
-  //     z: 10,
-  //   },
-  //   0.8,
-  //   "X"
-  // );
-
-  // addColumnAgentGroup(
-  //   agentData,
-  //   4,
-  //   RADIUS * 4,
-  //   {
-  //     x: 25,
-  //     z: 6,
-  //   },
-  //   {
-  //     x: -25,
-  //     z: 6,
-  //   },
-  //   0.8,
-  //   "X"
-  // );
-
-  // addColumnAgentGroup(
-  //   agentData,
-  //   4,
-  //   RADIUS * 4,
-  //   {
-  //     x: 25,
-  //     z: 6,
-  //   },
-  //   {
-  //     x: -25,
-  //     z: 6,
-  //   },
-  //   0.8,
-  //   "X"
-  // );
-  // addColumnAgentGroup(
-  //   agentData,
-  //   4,
-  //   RADIUS * 4,
-  //   {
-  //     x: 25,
-  //     z: 6,
-  //   },
-  //   {
-  //     x: -25,
-  //     z: 6,
-  //   },
-  //   0.8,
-  //   "X"
-  // );
+  testHallwayScenario();
 
   let agentGeom, agentMaterial, agent;
   let spotLight, spotLightTarget;
@@ -364,15 +438,14 @@ function mouseMove(event) {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     var intersects = raycaster.intersectObject(grid, false);
-    for (var i = 0; i < intersects.length; i++) {
-      /* TODO finish this part as
-       */
+    for (let i = 0; i < intersects.length; i++) {
+
       agentData.forEach(function (member) {
-        if (selected != null && member.index == selected) {
+        if (selected != null && member.index === selected) {
           member.goal_x = intersects[i].point.x;
           member.goal_z = intersects[i].point.z;
-          ring.position.x = intersects[i].point.x;
-          ring.position.z = intersects[i].point.z;
+          // ring.position.x = intersects[i].point.x;
+          // ring.position.z = intersects[i].point.z;
         }
       });
       break;
@@ -423,8 +496,7 @@ function animate() {
 
     const dx = member.goal_x - member.x;
     const dz = member.goal_z - member.z;
-    const angle = Math.atan2(dz, dx);
-    member.agent.rotation.z = angle;
+    member.agent.rotation.z = Math.atan2(dz, dx);
 
     member.agent.material = redAgentMaterial;
     if (member.colliding) {
