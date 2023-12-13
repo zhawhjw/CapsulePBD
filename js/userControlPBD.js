@@ -425,6 +425,8 @@ export function step(RADIUS, sceneEntities, world, scene) {
         // collisionConstraint(sceneEntities[i],sceneEntities[j])
 
         let [bestA, bestB] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
+        sceneEntities[i].best = bestA;
+        sceneEntities[j].best = bestB;
 
         let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
 
@@ -435,26 +437,7 @@ export function step(RADIUS, sceneEntities, world, scene) {
         sceneEntities[j].px += delta_correction_j.x;
         sceneEntities[j].pz += delta_correction_j.y;
 
-        // let penetration_normal = bestA.clone().sub(bestB);
-        // const len = penetration_normal.length();
-        // penetration_normal.divideScalar(len); // normalize
-        // const penetration_depth = RADIUS + RADIUS - len;
-        // const intersects = penetration_depth > 0;
-
-
-        // PBD collision correction
-        // if (intersects) {
-        //   sceneEntities[i].colliding = true;
-        //   sceneEntities[j].colliding = true;
-        //
-        //   sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
-        //   sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
-        //
-        //   sceneEntities[j].px +=
-        //     -1 * penetration_normal.x * 0.5 * penetration_depth;
-        //   sceneEntities[j].pz +=
-        //     -1 * penetration_normal.y * 0.5 * penetration_depth;
-        // }
+     　
 
 
         j += 1;

@@ -360,6 +360,8 @@ function init() {
         invmass: 0.5,
         colliding: false,
         group_id: 1,
+
+        best: null
       });
       i += 1;
     }
@@ -376,13 +378,13 @@ function init() {
 
   // defaultScenario();
   // testScenario()
-  // testCrossScenario();
+  testCrossScenario();
   // testCrossWithDiagnoScenario();
-
-  testHallwayScenario();
+  // testHallwayScenario();
 
   let agentGeom, agentMaterial, agent;
   let spotLight, spotLightTarget;
+  let agentPointGeom, agentPointMaterial, agentPoint;
 
   agentData.forEach(function (item) {
     //agentGeom = new THREE.CylinderGeometry(item.radius, 1, 4, 16);
@@ -390,7 +392,6 @@ function init() {
     agentMaterial = new THREE.MeshLambertMaterial({
       color: 0x00ff00,
     });
-
     agent = new THREE.Mesh(agentGeom, agentMaterial);
     agent.castShadow = true;
     agent.receiveShadow = true;
@@ -400,6 +401,21 @@ function init() {
     agent.rotateX(Math.PI / 2);
     // agent.rotateZ(Math.PI / 2);
     scene.add(agent);
+
+
+
+    agentPointGeom = new THREE.CapsuleGeometry(item.radius, 2 * item.radius, 4, 8);
+    agentPointMaterial = new THREE.MeshLambertMaterial({
+      color: 0x0000ff,
+    });
+    agentPoint = new THREE.Mesh(agentPointGeom, agentPointMaterial);
+    agentPoint.castShadow = true;
+    agentPoint.receiveShadow = true;
+    scene.add(agentPoint);
+
+
+
+
     // -----------------
     //adding spotlight code
     spotLight = new THREE.SpotLight(0xffffff);
@@ -418,7 +434,10 @@ function init() {
     spotLights[item.index] = spotLight;
     // ----------------
     item.agent = agent;
+    item.agentPoint = agentPoint;
     pickableObjects.push(agent);
+    // pickableObjects.push(agent);
+
   });
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("mousedown", mouseDown, false);
@@ -475,6 +494,9 @@ function animate() {
   // console.log(mouse.x, mouse.y);
   requestAnimationFrame(animate);
   PHY.step(RADIUS, agentData, world, scene);
+
+
+
   agentData.forEach(function (member) {
     // prevent agents from leaving the walls
     if (member.x > 23) {
@@ -494,6 +516,13 @@ function animate() {
     member.agent.position.y = member.y;
     member.agent.position.z = member.z;
 
+    if(member.best !== null){
+      member.agentPoint.position.x = member.best.x;
+      member.agentPoint.position.y = member.y;
+      member.agentPoint.position.z = member.best.z;
+    }
+
+
     const dx = member.goal_x - member.x;
     const dz = member.goal_z - member.z;
     member.agent.rotation.z = Math.atan2(dz, dx);
@@ -504,7 +533,7 @@ function animate() {
     }
     member.colliding = false;
 
-    if (selected != null && member.index == selected) {
+    if (selected != null && member.index === selected) {
       member.agent.material = blueAgentMaterial;
     }
     /* TODO finish this part as 
