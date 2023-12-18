@@ -33,6 +33,9 @@ const greenAgentMaterial = new THREE.MeshLambertMaterial({
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
+let arrows = [];
+let g_arrows = [];
+
 init();
 render();
 
@@ -141,6 +144,8 @@ function init() {
   // scene.add(bottom);
   // scene.add(top);
   // scene.add(right);
+
+
 
   const ringGeometry = new THREE.RingGeometry(1, 3, 12);
   const ringMaterial = new THREE.MeshBasicMaterial({
@@ -378,6 +383,262 @@ function init() {
 
   }
 
+  //********************************************************* Trying scenario 1 *********************************************************
+  // Time: 0.06 seconds of the video
+
+  function tryingScenario_Bilas_1() {
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 3; j++) {
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+              x: 30 - i * 6,
+              //x: 30,
+              z: -10 + j * 6,
+            },
+            {
+              x: -999,
+              //x: -20,
+              z: -10 + j * 6,
+            },
+            0.8,
+            "X"
+        );
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+              x: -30 + i * 6,
+              //x: 30,
+              z: -6 + j * 6,
+            },
+            {
+              x: 999,
+              //x: -20,
+              z: -6 + j * 6,
+            },
+            0.8,
+            "X"
+        );
+
+      }
+    }
+  }
+//********************************************************* Trying scenario 1 *********************************************************
+
+
+//********************************************************* Trying scenario 2 *********************************************************
+  // Time: 3.06 seconds seconds of the video
+  function tryingScenario_Bilas_2() {
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 1.5,
+        {
+          x: 20,
+          z: 0,
+        },
+        {
+          x: -20,
+          z: 0,
+        },
+        0.8,
+        "X"
+    );
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 1.5,
+        {
+          x: 20,
+          z: 0,
+        },
+        {
+          x: -20,
+          z: 0,
+        },
+        0.8,
+        "X"
+    );
+    //-----------------------------------------------
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: -20,
+          z: 0
+        },
+        {
+          x: 20,
+          z: 0
+        },
+        0.8,
+        "X"
+    );
+
+    addColumnAgentGroup(
+        agentData,
+        1,
+        RADIUS * 4,
+        {
+          x: -20,
+          z: 0
+        },
+        {
+          x: 20,
+          z: 0
+        },
+        0.8,
+        "X"
+    );
+  }
+//********************************************************* Trying scenario 2 *********************************************************
+
+//********************************************************* Trying scenario 3 *********************************************************
+  // Time: 5:11 seconds of the video: https://youtu.be/iC8KHkoZR8k?t=314
+
+  function tryingScenario_Bilas_3() {
+
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 3; j++) {
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+              x: 10 - i * 6,
+              //x: 30,
+              z: 20 - j * 6,
+            },
+            {
+              x: 10 - i * 6,
+              //x: -20,
+              z: -999,
+            },
+            0.8,
+            "X"
+        );
+
+      }
+    }
+
+      // experiment border
+      const boxGeometry1 = new THREE.BoxGeometry(30, 5, 1);
+      const boxMaterial1 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+      const left = new THREE.Mesh(boxGeometry1, boxMaterial1);
+      left.position.set(20, 2.5, 0);
+
+      const boxGeometry2 = new THREE.BoxGeometry(1, 5, 30);
+      const boxMaterial2 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+      const bottom = new THREE.Mesh(boxGeometry2, boxMaterial2);
+      //bottom.position.set(-15, 2.5, 0);
+      bottom.position.set(-15, 2.5, -15);
+
+      const boxGeometry3 = new THREE.BoxGeometry(1, 5, 30);
+      const boxMaterial3 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+      const top = new THREE.Mesh(boxGeometry3, boxMaterial3);
+      top.position.set(5, 2.5, -15);
+
+      const boxGeometry4 = new THREE.BoxGeometry(30, 5, 1);
+      const boxMaterial4 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+      const right = new THREE.Mesh(boxGeometry4, boxMaterial4);
+      right.position.set(-30, 2.5, 0);
+
+      scene.add(left);
+      scene.add(bottom);
+      scene.add(top);
+      scene.add(right);
+
+  }
+
+//********************************************************* Trying scenario 3 *********************************************************
+
+    function tryingScenario_Bilas_2p5() {
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: 20,
+                z: 2,
+            },
+            {
+                x: -20,
+                z: 2,
+            },
+            0.8,
+            "X"
+        );
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: 20,
+                z: 2,
+            },
+            {
+                x: -20,
+                z: 2,
+            },
+            0.8,
+            "X"
+        );
+        //-----------------------------------------------
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 4,
+            {
+                x: -20,
+                z: -1
+            },
+            {
+                x: 20,
+                z: -1
+            },
+            0.8,
+            "X"
+        );
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 4,
+            {
+                x: -20,
+                z: -1
+            },
+            {
+                x: 20,
+                z: -1
+            },
+            0.8,
+            "X"
+        );
+
+
+
+        // for(let i =0;i<agentData.length;i++){
+        //
+        //     if (i % 2 !== 0){
+        //         agentData[i].agent.material = blueAgentMaterial;
+        //
+        //     }
+        // }
+    }
+
+
+
   function addColumnAgentGroup(
     agentData,
     numAgents,
@@ -425,7 +686,8 @@ function init() {
         colliding: false,
         group_id: 1,
 
-        best: null
+        best: null,
+        grad: [0, 0]
       });
       i += 1;
     }
@@ -442,24 +704,39 @@ function init() {
 
   // defaultScenario();
   // testScenario()
-  testCrossScenario();
+  // testCrossScenario();
   // testCrossWithDiagnoScenario();
   // testHallwayScenario();
   // testCrossScenario();
   // circleScenario();
 
-
+  // tryingScenario_Bilas_1();
+  // tryingScenario_Bilas_2();
+  tryingScenario_Bilas_3();
+  // tryingScenario_Bilas_2p5();
 
   let agentGeom, agentMaterial, agent;
   let spotLight, spotLightTarget;
   let agentPointGeom, agentPointMaterial, agentPoint;
 
-  agentData.forEach(function (item) {
+  agentData.forEach(function (item, index) {
     //agentGeom = new THREE.CylinderGeometry(item.radius, 1, 4, 16);
     agentGeom = new THREE.CapsuleGeometry(item.radius, 2 * item.radius, 4, 8);
-    agentMaterial = new THREE.MeshLambertMaterial({
-      color: 0x00ff00,
-    });
+
+
+
+
+    if (index % 2 !== 0){
+        agentMaterial = new THREE.MeshLambertMaterial({
+            color: 0x00ff00,
+        });
+    }else {
+        agentMaterial = new THREE.MeshLambertMaterial({
+            color: 0x0000ff,
+        });
+    }
+
+
     agent = new THREE.Mesh(agentGeom, agentMaterial);
     agent.castShadow = true;
     agent.receiveShadow = true;
@@ -480,6 +757,26 @@ function init() {
     agentPoint.castShadow = true;
     agentPoint.receiveShadow = true;
     scene.add(agentPoint);
+
+
+    let dir = new THREE.Vector3( 0, 1, 0 );
+    let origin = agent.position;
+    let length = 10;
+    let hex = 0xffff00;
+
+    let arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
+    // scene.add( arrowHelper );
+    arrows.push(arrowHelper);
+
+    // velocity  indicator
+    let g_dir = new THREE.Vector3( 1, 0, 0 );
+    let g_origin = agent.position;
+    let g_length = 5;
+    let g_hex = 0x0000ff;
+
+    let g_arrowHelper = new THREE.ArrowHelper( g_dir, g_origin, g_length, g_hex );
+    // scene.add( g_arrowHelper );
+    g_arrows.push(g_arrowHelper);
 
 
 
@@ -565,7 +862,7 @@ function animate() {
 
 
 
-  agentData.forEach(function (member) {
+  agentData.forEach(function (member, index) {
     // prevent agents from leaving the walls
     // if (member.x > 23) {
     //   member.x = 23;
@@ -616,6 +913,39 @@ function animate() {
     spotLights[member.index].target.position.x = member.x;
     spotLights[member.index].target.position.y = member.y;
     spotLights[member.index].target.position.z = member.z;
+
+
+    if (arrows.length>0){
+
+      arrows[index].position.x = member.x;
+      arrows[index].position.y = member.y;
+      arrows[index].position.z = member.z;
+
+      console.log(member.grad);
+      let direction = new THREE.Vector3(0, 1, 0);
+      if (member.grad.x !== 0 && member.grad.y !==0){
+          direction = new THREE.Vector3(member.grad[0], 0, member.grad[1]);
+      }
+
+      arrows[index].setDirection(direction.normalize());
+      arrows[index].setLength(direction.length()*10);
+    }
+
+    if (g_arrows.length>0){
+
+      g_arrows[index].position.x = member.x;
+      g_arrows[index].position.y = member.y;
+      g_arrows[index].position.z = member.z;
+
+
+      let direction = new THREE.Vector3(member.vx, 0, member.vz);
+
+
+      g_arrows[index].setDirection(direction.normalize());
+      g_arrows[index].setLength(direction.length()*10);
+    }
+
+
   });
   renderer.render(scene, camera);
   stats.update();

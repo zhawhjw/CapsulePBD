@@ -220,6 +220,19 @@ export function step(RADIUS, sceneEntities, world, scene) {
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
 
+
+
+
+    // if (agent_i.index % 2 !== 0 && agent_j.index % 2 !== 0){
+    //
+    //   C_TAO0 = 6;
+    // }else if (agent_i.index % 2 === 0 && agent_j.index % 2 === 0){
+    //
+    //   C_TAO0 = 80;
+    // }else {
+    //   return;
+    // }
+
     let lengthV;
     if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
       const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
@@ -245,13 +258,19 @@ export function step(RADIUS, sceneEntities, world, scene) {
       agent_i.pz += delta_correction_i.y;
       agent_j.px += delta_correction_j.x;
       agent_j.pz += delta_correction_j.y;
+
+      agent_i.grad[0] += delta_correction_i.x;
+      agent_i.grad[1] += delta_correction_i.y;
+      agent_j.grad[0] += delta_correction_j.x;
+      agent_j.grad[1] += delta_correction_j.y;
+
     }
   }
 
-  const C_TAU_MAX = 20;
+  let C_TAU_MAX = 20;
   // const C_MAX_ACCELERATION = 0.01;
-  const C_TAO0 = 20;
-  const C_LONG_RANGE_STIFF = 0.02;
+  let C_TAO0 = 100; //
+  const C_LONG_RANGE_STIFF = 0.2;
   const MAX_DELTA = 0.9;
 
   function clamp2D(vx,vy, maxValue) {
@@ -266,8 +285,7 @@ export function step(RADIUS, sceneEntities, world, scene) {
 
 
   function longRangeConstraintCapsule(best_i, best_j, p_best_i, p_best_j) {
-    const agentCentroidDist = distance(p_best_i.x, p_best_i.z,
-        p_best_j.x, p_best_j.z);
+    const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
 
     const radius_init = 2 * AGENTSIZE;
     const radius_sq_init = radius_init * radius_init;
@@ -293,10 +311,52 @@ export function step(RADIUS, sceneEntities, world, scene) {
     const d_sq = b_sq - a * c;
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
+    // console.log("ttc in long range paper: " + tao);
+
+    let lengthV;
+    let grad_x_i;
+    let grad_y_i;
+    let grad_x_j;
+    let grad_y_j;
+
+    if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
+      const tao_sq = c_tao * c_tao;
+
+      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      grad_x_j = -grad_x_i;
+      grad_y_j = -grad_y_i;
+
+      const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+      const s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+      // console.log()
+
+      delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
+          s * 0.5 * grad_y_i,
+          MAX_DELTA);
+
+      delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
+          s * 0.5 * grad_y_j,
+          MAX_DELTA);
+
+      console.log("Long Range active");
+
+    }else {
+      grad_x_i = 0;
+      grad_y_i = 0;
+      grad_x_j = 0;
+      grad_y_j = 0;
+    }
 
 
-    return tao;
-    // return [delta_correction_i, delta_correction_j];
+    // return tao;
+    return [
+        delta_correction_i,
+        delta_correction_j,
+        [grad_x_i, grad_y_i],
+        [grad_x_j, grad_y_j]
+    ];
   }
 
 
@@ -374,6 +434,56 @@ export function step(RADIUS, sceneEntities, world, scene) {
     return [bestA, bestB, a, b]
   }
 
+  function dotProduct(vector1, vector2) {
+    let result = 0;
+    for (let i = 0; i < vector1.length; i++) {
+      result += vector1[i] * vector2[i];
+    }
+    return result;
+  }
+
+  function areCollinear(vector1, vector2) {
+    // Ensure vectors are of the same dimension
+    if (vector1.length !== vector2.length) {
+      return false;
+    }
+
+    // Find the ratio of the first non-zero pair of elements
+    let ratio;
+    for (let i = 0; i < vector1.length; i++) {
+      if (vector1[i] !== 0 && vector2[i] !== 0) {
+        ratio = vector1[i] / vector2[i];
+        break;
+      }
+    }
+
+    // Check if all corresponding elements are in the same ratio
+    for (let i = 0; i < vector1.length; i++) {
+      // Handle division by zero cases
+      if (vector1[i] === 0 && vector2[i] !== 0 || vector1[i] !== 0 && vector2[i] === 0) {
+        return false;
+      }
+
+      // Check the ratio
+      if (vector1[i] !== 0 && vector2[i] !== 0) {
+        if (vector1[i] / vector2[i] !== ratio) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  function signNoP(n){
+    if (n >= 0){
+      return 1;
+    }else {
+      return -1;
+    }
+
+  }
+
 
   /*  -----------------------  */
 
@@ -405,79 +515,121 @@ export function step(RADIUS, sceneEntities, world, scene) {
     while (i < sceneEntities.length) {
       j = i + 1;
       while (j < sceneEntities.length) {
-        // collisionConstraint(sceneEntities[i],sceneEntities[j])
-
-        let [bestA, bestB, a, b] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
-        let [p_bestA, p_bestB, pa, pb] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-
-        sceneEntities[i].best = bestA;
-        sceneEntities[j].best = bestB;
 
 
 
-        let ttc = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
-        console.log(ttc);
+
+        let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
+        let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
+
+        // if(areCollinear([sceneEntities[i].vx, sceneEntities[i].vz], [sceneEntities[j].x - sceneEntities[i].x, sceneEntities[j].z - sceneEntities[i].z])){
+        //   bestA.x = sceneEntities[i].x;
+        //   bestA.z = sceneEntities[i].z;
+        // }
+        // if(areCollinear([sceneEntities[j].vx, sceneEntities[j].vz], [sceneEntities[i].x - sceneEntities[j].x, sceneEntities[i].z - sceneEntities[j].z])){
+        //   bestB.x = sceneEntities[j].x;
+        //   bestB.z = sceneEntities[j].z;
+        // }
 
 
-        let penetration_normal = bestA.clone().sub(bestB);
-        const len = penetration_normal.length();
-        penetration_normal.divideScalar(len); // normalize
-        const penetration_depth = a.radius + b.radius - len;
-        const intersects = penetration_depth > 0;
+        // sceneEntities[i].best = bestA;
+        // sceneEntities[j].best = bestB;
+
+
+        // ttc in long range collision paper
+        let [delta_correction_i, delta_correction_j, grad_i, grad_j] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
+
+        sceneEntities[i].grad[0] += grad_i[0];
+        sceneEntities[i].grad[1] += grad_i[1];
+        sceneEntities[j].grad[0] += grad_j[0];
+        sceneEntities[j].grad[1] += grad_j[1];
+
+
+        sceneEntities[i].px += delta_correction_i.x;
+        sceneEntities[i].pz += delta_correction_i.y;
+        sceneEntities[j].px += delta_correction_j.x;
+        sceneEntities[j].pz += delta_correction_j.y;
 
 
 
-        let dx = sceneEntities[i].vx - sceneEntities[j].vx;
-        let dz = sceneEntities[i].vz - sceneEntities[j].vz;
-        let vm = Math.sqrt(dx * dx +  dz * dz);
-        if (vm <= 0){
-          console.log("no collision");
-          continue;
-        }
 
-        let t1 =  (distance(bestA.x, bestA.y, bestB.x, bestB.y) + 2 * RADIUS) / vm;
-        let t2 = (distance(bestA.x, bestA.y, bestB.x, bestB.y) - 2 * RADIUS) / vm;
 
-        console.log("t1 = " + t1);
-        console.log("t2 = " + t2);
 
-        let ttc2;
-        if (t1 < 0 && t2 > 0){
-          ttc2 = t2;
-        }else if(t2 < 0 && t1>0){
-          ttc2 = t1;
-        }else {
-          console.log("Exception")
-        }
-        console.log();
+        // let bestA, bestB;
+        // longRangeConstraint(sceneEntities[i], sceneEntities[j]);
+        // bestA = new THREE.Vector3(sceneEntities[i].x, 0, sceneEntities[i].z);
+        // bestB = new THREE.Vector3(sceneEntities[j].x, 0, sceneEntities[j].z);
+
+        // let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
+
+
+        // p38 in paper https://www.realtimerendering.com/Real-Time_Rendering_4th-Collision_Detection.pdf
+        // let vij = [sceneEntities[i].vx - sceneEntities[j].vx, sceneEntities[i].vz - sceneEntities[j].vz];
+        // let l = [sceneEntities[i].x - sceneEntities[j].x, sceneEntities[i].z - sceneEntities[j].z];
+        //
+        // let a1 = dotProduct(vij, vij);
+        // let b1 = 2 * dotProduct(l, vij);
+        // let c1 = dotProduct(l, l) - 4 * RADIUS * RADIUS;
+        //
+        // let q1 = -0.5 * (b1 + signNoP(b1) * Math.sqrt(b1*b1 - 4*a1*c1))
+        //
+        // let t0 = q1/a1;
+        // let t1 = c1/q1;
+        // console.log("t0 is: " + t0.toFixed(3) + "; " + "t1 is: " + t1.toFixed(3))
+        // let t = Math.min(t0, t1);
+        // if (t>=0 && t<timestep){
+        //   console.log("CONTACT!");
+        // }
+
+        // ours
+        // let dx = sceneEntities[i].vx - sceneEntities[j].vx;
+        // let dz = sceneEntities[i].vz - sceneEntities[j].vz;
+        // let vm = Math.sqrt(dx * dx +  dz * dz);
+        // if (vm <= 0){
+        //   console.log("no collision");
+        //   continue;
+        // }
+        //
+        // let t1 =  (distance(bestA.x, bestA.y, bestB.x, bestB.y) + 2 * RADIUS) / vm;
+        // let t2 = (distance(bestA.x, bestA.y, bestB.x, bestB.y) - 2 * RADIUS) / vm;
+        //
+        // console.log("t1 = " + t1);
+        // console.log("t2 = " + t2);
+
+        // let ttc2;
+        // if (t1 < 0 && t2 > 0){
+        //   ttc2 = t2;
+        // }else if(t2 < 0 && t1>0){
+        //   ttc2 = t1;
+        // }else {
+        //   console.log("Exception")
+        // }
+        // console.log();
 
         // console.log(ttc2);
 
 
-        if (intersects) {
-          sceneEntities[i].colliding = true;
-          sceneEntities[j].colliding = true;
 
-          sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
-          sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
-
-          sceneEntities[j].px +=
-              -1 * penetration_normal.x * 0.5 * penetration_depth;
-          sceneEntities[j].pz +=
-              -1 * penetration_normal.y * 0.5 * penetration_depth;
-        }
-
-
-
-
-        // let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-
-        // let [delta_correction_i, delta_correction_j] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
+        // short range collision
+        // didn't correct position in real time
+        // let penetration_normal = bestA.clone().sub(bestB);
+        // const len = penetration_normal.length();
+        // penetration_normal.divideScalar(len); // normalize
+        // const penetration_depth = sceneEntities[i].radius + sceneEntities[j].radius - len;
+        // const intersects = penetration_depth > 0;
+        // if (intersects) {
+        //   sceneEntities[i].colliding = true;
+        //   sceneEntities[j].colliding = true;
         //
-        // sceneEntities[i].px += delta_correction_i.x;
-        // sceneEntities[i].pz += delta_correction_i.y;
-        // sceneEntities[j].px += delta_correction_j.x;
-        // sceneEntities[j].pz += delta_correction_j.y;
+        //   sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
+        //   sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
+        //
+        //   sceneEntities[j].px +=
+        //       -1 * penetration_normal.x * 0.5 * penetration_depth;
+        //   sceneEntities[j].pz +=
+        //       -1 * penetration_normal.y * 0.5 * penetration_depth;
+        // }
+
 
      　
 
@@ -486,6 +638,8 @@ export function step(RADIUS, sceneEntities, world, scene) {
       }
       i += 1;
     }
+
+
     pbdIters += 1;
   }
 
