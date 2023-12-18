@@ -251,7 +251,7 @@ export function step(RADIUS, sceneEntities, world, scene) {
   const C_TAU_MAX = 20;
   // const C_MAX_ACCELERATION = 0.01;
   const C_TAO0 = 20;
-  const C_LONG_RANGE_STIFF = 0.8;
+  const C_LONG_RANGE_STIFF = 0.02;
   const MAX_DELTA = 0.9;
 
   function clamp2D(vx,vy, maxValue) {
@@ -294,26 +294,9 @@ export function step(RADIUS, sceneEntities, world, scene) {
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
 
-    if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
-      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
-      const tao_sq = c_tao * c_tao;
-      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-      const grad_x_j = -grad_x_i;
-      const grad_y_j = -grad_y_i;
-      const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
-      const s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
-      delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
-          s * 0.5 * grad_y_i,
-          MAX_DELTA);
-
-      delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
-          s * 0.5 * grad_y_j,
-          MAX_DELTA);
-    }
-
-    return [delta_correction_i, delta_correction_j];
+    return tao;
+    // return [delta_correction_i, delta_correction_j];
   }
 
 
@@ -424,18 +407,77 @@ export function step(RADIUS, sceneEntities, world, scene) {
       while (j < sceneEntities.length) {
         // collisionConstraint(sceneEntities[i],sceneEntities[j])
 
-        let [bestA, bestB] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
+        let [bestA, bestB, a, b] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
+        let [p_bestA, p_bestB, pa, pb] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
+
         sceneEntities[i].best = bestA;
         sceneEntities[j].best = bestB;
 
-        let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
 
-        let [delta_correction_i, delta_correction_j] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
 
-        sceneEntities[i].px += delta_correction_i.x;
-        sceneEntities[i].pz += delta_correction_i.y;
-        sceneEntities[j].px += delta_correction_j.x;
-        sceneEntities[j].pz += delta_correction_j.y;
+        let ttc = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
+        console.log(ttc);
+
+
+        let penetration_normal = bestA.clone().sub(bestB);
+        const len = penetration_normal.length();
+        penetration_normal.divideScalar(len); // normalize
+        const penetration_depth = a.radius + b.radius - len;
+        const intersects = penetration_depth > 0;
+
+
+
+        let dx = sceneEntities[i].vx - sceneEntities[j].vx;
+        let dz = sceneEntities[i].vz - sceneEntities[j].vz;
+        let vm = Math.sqrt(dx * dx +  dz * dz);
+        if (vm <= 0){
+          console.log("no collision");
+          continue;
+        }
+
+        let t1 =  (distance(bestA.x, bestA.y, bestB.x, bestB.y) + 2 * RADIUS) / vm;
+        let t2 = (distance(bestA.x, bestA.y, bestB.x, bestB.y) - 2 * RADIUS) / vm;
+
+        console.log("t1 = " + t1);
+        console.log("t2 = " + t2);
+
+        let ttc2;
+        if (t1 < 0 && t2 > 0){
+          ttc2 = t2;
+        }else if(t2 < 0 && t1>0){
+          ttc2 = t1;
+        }else {
+          console.log("Exception")
+        }
+        console.log();
+
+        // console.log(ttc2);
+
+
+        if (intersects) {
+          sceneEntities[i].colliding = true;
+          sceneEntities[j].colliding = true;
+
+          sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
+          sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
+
+          sceneEntities[j].px +=
+              -1 * penetration_normal.x * 0.5 * penetration_depth;
+          sceneEntities[j].pz +=
+              -1 * penetration_normal.y * 0.5 * penetration_depth;
+        }
+
+
+
+
+        // let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
+
+        // let [delta_correction_i, delta_correction_j] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
+        //
+        // sceneEntities[i].px += delta_correction_i.x;
+        // sceneEntities[i].pz += delta_correction_i.y;
+        // sceneEntities[j].px += delta_correction_j.x;
+        // sceneEntities[j].pz += delta_correction_j.y;
 
      　
 
@@ -446,6 +488,7 @@ export function step(RADIUS, sceneEntities, world, scene) {
     }
     pbdIters += 1;
   }
+
 
   sceneEntities.forEach(function (item) {
     item.vx = (item.px - item.x) / timestep;

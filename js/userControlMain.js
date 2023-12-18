@@ -117,30 +117,30 @@ function init() {
   scene.add(grid);
 
   // experiment border
-  const boxGeometry1 = new THREE.BoxGeometry(50, 5, 1);
-  const boxMaterial1 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
-  const left = new THREE.Mesh(boxGeometry1, boxMaterial1);
-  left.position.set(0, 2.5, -25);
-
-  const boxGeometry2 = new THREE.BoxGeometry(1, 5, 50);
-  const boxMaterial2 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
-  const bottom = new THREE.Mesh(boxGeometry2, boxMaterial2);
-  bottom.position.set(-25, 2.5, 0);
-
-  const boxGeometry3 = new THREE.BoxGeometry(1, 5, 50);
-  const boxMaterial3 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
-  const top = new THREE.Mesh(boxGeometry3, boxMaterial3);
-  top.position.set(25, 2.5, 0);
-
-  const boxGeometry4 = new THREE.BoxGeometry(50, 5, 1);
-  const boxMaterial4 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
-  const right = new THREE.Mesh(boxGeometry4, boxMaterial4);
-  right.position.set(0, 2.5, 25);
-
-  scene.add(left);
-  scene.add(bottom);
-  scene.add(top);
-  scene.add(right);
+  // const boxGeometry1 = new THREE.BoxGeometry(50, 5, 1);
+  // const boxMaterial1 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+  // const left = new THREE.Mesh(boxGeometry1, boxMaterial1);
+  // left.position.set(0, 2.5, -25);
+  //
+  // const boxGeometry2 = new THREE.BoxGeometry(1, 5, 50);
+  // const boxMaterial2 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+  // const bottom = new THREE.Mesh(boxGeometry2, boxMaterial2);
+  // bottom.position.set(-25, 2.5, 0);
+  //
+  // const boxGeometry3 = new THREE.BoxGeometry(1, 5, 50);
+  // const boxMaterial3 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+  // const top = new THREE.Mesh(boxGeometry3, boxMaterial3);
+  // top.position.set(25, 2.5, 0);
+  //
+  // const boxGeometry4 = new THREE.BoxGeometry(50, 5, 1);
+  // const boxMaterial4 = new THREE.MeshBasicMaterial({ color: 0x000f26 });
+  // const right = new THREE.Mesh(boxGeometry4, boxMaterial4);
+  // right.position.set(0, 2.5, 25);
+  //
+  // scene.add(left);
+  // scene.add(bottom);
+  // scene.add(top);
+  // scene.add(right);
 
   const ringGeometry = new THREE.RingGeometry(1, 3, 12);
   const ringMaterial = new THREE.MeshBasicMaterial({
@@ -151,6 +151,45 @@ function init() {
   scene.add(ring);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y += 0.01;
+
+
+  function sampleCirclePoints(radius, sampleCount, centerX, centerY) {
+    let points = [];
+    for (let i = 0; i < sampleCount; i++) {
+      // Angle in radians
+      let angle = 2 * Math.PI * i / sampleCount;
+
+      // Calculating x and y coordinates
+      let x = centerX + radius * Math.cos(angle);
+      let y = centerY + radius * Math.sin(angle);
+
+      points.push({ x: x, y: y });
+    }
+    return points;
+  }
+
+
+  function sampleCirclePointsWithDistance(sampleCount, distanceBetweenPoints, centerX, centerY) {
+    // Calculating the total circumference that would fit the points with the given distance
+    let totalCircumference = distanceBetweenPoints * sampleCount;
+
+    // Updating the radius based on the new circumference
+    let radius = totalCircumference / (2 * Math.PI);
+
+    let points = [];
+    for (let i = 0; i < sampleCount; i++) {
+      // Angle in radians
+      let angle = 2 * Math.PI * i / sampleCount;
+
+      // Calculating x and y coordinates
+      let x = centerX + radius * Math.cos(angle);
+      let y = centerY + radius * Math.sin(angle);
+
+      points.push({ x: x, y: y });
+    }
+    return points;
+  }
+
 
 
   function testScenario(){
@@ -189,7 +228,7 @@ function init() {
 
   function testHallwayScenario(){
 
-    for(let i=0;i<3;i++){
+    for(let i=0;i<1;i++){
       addColumnAgentGroup(
           agentData,
           1,
@@ -314,6 +353,31 @@ function init() {
 
   }
 
+  function circleScenario(){
+
+    let points = sampleCirclePoints(20, 20, 0, 0);
+    // let points = sampleCirclePointsWithDistance(42, 2 * 2* RADIUS + 2, 0, 0);
+    console.log(points);
+    points.forEach(function (point){
+      addColumnAgentGroup(
+          agentData,
+          1,
+          0,
+          {
+            x: point.x,
+            z: point.y,
+          },
+          {
+            x: -point.x ,
+            z: -point.y,
+          },
+          0.8,
+          "X"
+      );
+    });
+
+  }
+
   function addColumnAgentGroup(
     agentData,
     numAgents,
@@ -381,6 +445,10 @@ function init() {
   testCrossScenario();
   // testCrossWithDiagnoScenario();
   // testHallwayScenario();
+  // testCrossScenario();
+  // circleScenario();
+
+
 
   let agentGeom, agentMaterial, agent;
   let spotLight, spotLightTarget;
@@ -499,18 +567,18 @@ function animate() {
 
   agentData.forEach(function (member) {
     // prevent agents from leaving the walls
-    if (member.x > 23) {
-      member.x = 23;
-    }
-    if (member.x < -23) {
-      member.x = -23;
-    }
-    if (member.z > 23) {
-      member.z = 23;
-    }
-    if (member.z < -23) {
-      member.z = -23;
-    }
+    // if (member.x > 23) {
+    //   member.x = 23;
+    // }
+    // if (member.x < -23) {
+    //   member.x = -23;
+    // }
+    // if (member.z > 23) {
+    //   member.z = 23;
+    // }
+    // if (member.z < -23) {
+    //   member.z = -23;
+    // }
 
     member.agent.position.x = member.x;
     member.agent.position.y = member.y;
