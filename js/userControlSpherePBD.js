@@ -50,6 +50,14 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         );
     }
 
+    function projectPointOnLineSegment(A, B, Point) {
+        const AB = B.clone().sub(A);
+        const t = AB.clone().dot(Point.clone().sub(A)) / AB.clone().dot(AB);
+        return A.clone().add(
+            AB.clone().multiplyScalar(Math.min(Math.max(t, 0), 1))
+        );
+    }
+
     function is_colliding_torso(x11, y11, x12, y12, x21, y21, x22, y22) {
         // console.log(segments_distance(x11, y11, x12, y12, x21, y21, x22, y22));
         return (
@@ -477,88 +485,14 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             bestA = a_A;
         }
 
-        // select point on capsule B line segment nearest to best potential endpoint on A capsule:
+        // this line will be replaced by projecting point to line segment:
         const bestB = ClosestPointOnLineSegment(b_A, b_B, bestA);
 
-        // now do the same for capsule A segment:
-        bestA = ClosestPointOnLineSegment(a_A, a_B, bestB);
+
 
         return [bestA, bestB, a, b]
     }
 
-    function getBestPoint(xi, zi, xj, zj){
-
-        const iCoords = rotateLineSegment(
-            xi,
-            zi + agentLength + RADIUS,
-            xi,
-            zi - agentLength - RADIUS,
-            sceneEntities[i].agent.rotation.z
-        );
-
-        const jCoords = rotateLineSegment(
-            xj,
-            zj + agentLength + RADIUS,
-            xj,
-            zj - agentLength - RADIUS,
-            sceneEntities[j].agent.rotation.z
-        );
-
-
-        // Agent A
-        const a = {
-            tip: new THREE.Vector3(iCoords[0], 0, iCoords[1]),
-            base: new THREE.Vector3(iCoords[2], 0, iCoords[3]),
-            radius: RADIUS,
-        };
-        // Agent B
-        const b = {
-            tip: new THREE.Vector3(jCoords[0], 0, jCoords[1]),
-            base: new THREE.Vector3(jCoords[2], 0, jCoords[3]),
-            radius: RADIUS,
-        };
-
-
-        // capsule A:
-        const a_Normal = a.tip.clone().sub(a.base.clone()).normalize();
-        const a_LineEndOffset = a_Normal.clone().multiplyScalar(a.radius);
-        const a_A = a.base.clone().add(a_LineEndOffset);
-        const a_B = a.tip.clone().sub(a_LineEndOffset);
-
-        // capsule B:
-        const b_Normal = b.tip.clone().sub(b.base.clone()).normalize();
-        const b_LineEndOffset = b_Normal.clone().multiplyScalar(b.radius);
-        const b_A = b.base.clone().add(b_LineEndOffset);
-        const b_B = b.tip.clone().sub(b_LineEndOffset);
-
-        // vectors between line endpoints:
-        const v0 = b_A.clone().sub(a_A);
-        const v1 = b_B.clone().sub(a_A);
-        const v2 = b_A.clone().sub(a_B);
-        const v3 = b_B.clone().sub(a_B);
-
-        // squared distances:
-        const d0 = v0.clone().dot(v0);
-        const d1 = v1.clone().dot(v1);
-        const d2 = v2.clone().dot(v2);
-        const d3 = v3.clone().dot(v3);
-
-        // select best potential endpoint on capsule A:
-        let bestA;
-        if (d2 < d0 || d2 < d1 || d3 < d0 || d3 < d1) {
-            bestA = a_B;
-        } else {
-            bestA = a_A;
-        }
-
-        // select point on capsule B line segment nearest to best potential endpoint on A capsule:
-        const bestB = ClosestPointOnLineSegment(b_A, b_B, bestA);
-
-        // now do the same for capsule A segment:
-        bestA = ClosestPointOnLineSegment(a_A, a_B, bestB);
-
-        return [bestA, bestB, a, b]
-    }
 
     function dotProduct(vector1, vector2) {
         let result = 0;

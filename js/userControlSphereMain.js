@@ -1278,11 +1278,11 @@ function init() {
 
     // tryingScenario_Bilas_1();
     //   tryingScenario_Bilas_1_debug();
-    tryingScenario_sphere_Bilas_1_debug();
+    // tryingScenario_sphere_Bilas_1_debug();
 
     // tryingScenario_Bilas_2();
     // tryingScenario_Bilas_3();
-    //   tryingScenario_Bilas_3_debug();
+      tryingScenario_Bilas_3_debug();
     // tryingScenario_Bilas_2p5();
 
     let agentGeom, agentMaterial, agent;
