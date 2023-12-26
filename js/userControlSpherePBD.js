@@ -646,8 +646,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             j=0;
             while(j<customParams.wallData.length)
             {
-                let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getBestPointWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
-                // let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getCircleCenterWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
+                // let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getBestPointWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
+                let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getCircleCenterWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
 
                 let penetration_normal = p_bestA.clone().sub(w_bestB);
                 const len = penetration_normal.length();
@@ -672,28 +672,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             j = i + 1;
             while (j < sceneEntities.length) {
 
-                let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
-                let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-                // // ttc in long range collision paper
-                let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(bestA, bestB, p_bestA, p_bestB);
-
-                sceneEntities[i].px += delta_correction_i.x;
-                sceneEntities[i].pz += delta_correction_i.y;
-                sceneEntities[j].px += delta_correction_j.x;
-                sceneEntities[j].pz += delta_correction_j.y;
-
-                sceneEntities[i].grad.x += grad_i[0];
-                sceneEntities[i].grad.z += grad_i[1];
-                sceneEntities[j].grad.x += grad_j[0];
-                sceneEntities[j].grad.z += grad_j[1];
-
-                sceneEntities[i].grad.s = s;
-                sceneEntities[j].grad.s = s;
-
-                sceneEntities[i].grad.dx += delta_correction_i.x;
-                sceneEntities[i].grad.dz += delta_correction_i.y;
-                sceneEntities[j].grad.dx += delta_correction_j.x;
-                sceneEntities[j].grad.dz += delta_correction_j.y;
+                // spheres
+                let bestA, bestB;
+                longRangeConstraint(sceneEntities[i], sceneEntities[j]);
+                bestA = new THREE.Vector3(sceneEntities[i].x, 0, sceneEntities[i].z);
+                bestB = new THREE.Vector3(sceneEntities[j].x, 0, sceneEntities[j].z);
 
                 // utilities
                 customParams.best[i][j] = [bestA, bestB]
@@ -718,63 +701,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
                 //   sceneEntities[j].pz +=
                 //       -1 * penetration_normal.y * 0.5 * penetration_depth;
                 // }
-
-
-
-                // let [p_bestA, p_bestB] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-
-
-                // p38 in paper https://www.realtimerendering.com/Real-Time_Rendering_4th-Collision_Detection.pdf
-                // let vij = [sceneEntities[i].vx - sceneEntities[j].vx, sceneEntities[i].vz - sceneEntities[j].vz];
-                // let l = [sceneEntities[i].x - sceneEntities[j].x, sceneEntities[i].z - sceneEntities[j].z];
-                //
-                // let a1 = dotProduct(vij, vij);
-                // let b1 = 2 * dotProduct(l, vij);
-                // let c1 = dotProduct(l, l) - 4 * RADIUS * RADIUS;
-                //
-                // let q1 = -0.5 * (b1 + signNoP(b1) * Math.sqrt(b1*b1 - 4*a1*c1))
-                //
-                // let t0 = q1/a1;
-                // let t1 = c1/q1;
-                // console.log("t0 is: " + t0.toFixed(3) + "; " + "t1 is: " + t1.toFixed(3))
-                // let t = Math.min(t0, t1);
-                // if (t>=0 && t<timestep){
-                //   console.log("CONTACT!");
-                // }
-
-                // ours
-                // let dx = sceneEntities[i].vx - sceneEntities[j].vx;
-                // let dz = sceneEntities[i].vz - sceneEntities[j].vz;
-                // let vm = Math.sqrt(dx * dx +  dz * dz);
-                // // if (vm <= 0){
-                // //   console.log("no collision");
-                // //   continue;
-                // // }
-                //
-                // let t1 =  (distance(bestA.x, bestA.y, bestB.x, bestB.y) + 2 * RADIUS) / vm;
-                // let t2 = (distance(bestA.x, bestA.y, bestB.x, bestB.y) - 2 * RADIUS) / vm;
-                //
-                // console.log("t1 = " + t1);
-                // console.log("t2 = " + t2);
-
-                // let ttc2;
-                // if (t1 < 0 && t2 > 0){
-                //   ttc2 = t2;
-                // }else if(t2 < 0 && t1>0){
-                //   ttc2 = t1;
-                // }else {
-                //   console.log("Exception")
-                // }
-                // console.log();
-
-                // console.log(ttc2);
-
-
-
-
-
-
-
 
 
                 j += 1;

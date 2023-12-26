@@ -1,4 +1,4 @@
-export function step(RADIUS, sceneEntities, world) {
+export function step(RADIUS, sceneEntities, world, customParams = {}) {
   // from https://wickedengine.net/2020/04/26/capsule-collision-detection/
   function ClosestPointOnLineSegment(A, B, Point) {
     const AB = B - A;
