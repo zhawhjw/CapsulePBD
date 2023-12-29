@@ -1248,11 +1248,21 @@ function init() {
         grad: {
             'x':0,
             'z':0,
-            'mx':1,
-            'mz':1,
+            // 'mx':1,
+            // 'mz':1,
             's':0,
             'dx':0,
             'dz':0
+        },
+
+        prev_grad: {
+          'x':null,
+          'z':null,
+          // 'mx':1,
+          // 'mz':1,
+          's':0,
+          'dx':0,
+          'dz':0
         }
       });
       i += 1;
@@ -1276,8 +1286,8 @@ function init() {
   // testCrossScenario();
   // circleScenario();
 
-  // tryingScenario_Bilas_1();
-  tryingScenario_Bilas_1_debug();
+  tryingScenario_Bilas_1();
+  // tryingScenario_Bilas_1_debug();
   // tryingScenario_sphere_Bilas_1_debug();
   // tryingScenario_Bilas_2();
   // tryingScenario_Bilas_3();
@@ -1542,7 +1552,7 @@ function animate() {
     spotLights[member.index].target.position.z = member.z;
 
 
-    visualizeXZMagnitude(member, index);
+    // visualizeXZMagnitude(member, index);
     // visualizeMagnitude(member, index)
     // visualizeVelocity(member, index);
 
