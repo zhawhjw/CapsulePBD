@@ -627,21 +627,21 @@ function init() {
 
   function tryingScenario_Bilas_1_debug() {
 
-        addColumnAgentGroup(
-            agentData,
-            1,
-            RADIUS * 1.5,
-            {
-                x: 30,
-                z: -10,
-            },
-            {
-                x: -999,
-                z: -10,
-            },
-            0.8,
-            "X"
-        );
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: 30,
+        //         z: -10,
+        //     },
+        //     {
+        //         x: -999,
+        //         z: -10,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
 
         addColumnAgentGroup(
             agentData,
@@ -677,23 +677,23 @@ function init() {
             "X"
         );
 
-        addColumnAgentGroup(
-            agentData,
-            1,
-            RADIUS * 1.5,
-            {
-                x: -30,
-                //x: 30,
-                z: -6 + 1 * 6,
-            },
-            {
-                x: 999,
-                //x: -20,
-                z: -6 + 1 * 6,
-            },
-            0.8,
-            "X"
-        );
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: -30,
+        //         //x: 30,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     {
+        //         x: 999,
+        //         //x: -20,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
 
 
         // for (let i = 0; i < 1; i++) {
@@ -806,6 +806,118 @@ function init() {
             0.8,
             "X"
         );
+
+
+        // for (let i = 0; i < 1; i++) {
+        //     for (let j = 0; j < 2; j++) {
+        //         addColumnAgentGroup(
+        //             agentData,
+        //             1,
+        //             RADIUS * 1.5,
+        //             {
+        //                 x: 30 - i * 6,
+        //                 //x: 30,
+        //                 z: -10 + j * 6,
+        //             },
+        //             {
+        //                 x: -999,
+        //                 //x: -20,
+        //                 z: -10 + j * 6,
+        //             },
+        //             0.8,
+        //             "X"
+        //         );
+        //
+        //         addColumnAgentGroup(
+        //             agentData,
+        //             1,
+        //             RADIUS * 1.5,
+        //             {
+        //                 x: -30 + i * 6,
+        //                 //x: 30,
+        //                 z: -6 + j * 6,
+        //             },
+        //             {
+        //                 x: 999,
+        //                 //x: -20,
+        //                 z: -6 + j * 6,
+        //             },
+        //             0.8,
+        //             "X"
+        //         );
+        //
+        //     }
+        // }
+    }
+
+  function tryingScenario_Bilas_1_diagno_debug() {
+
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: 30,
+        //         z: -10,
+        //     },
+        //     {
+        //         x: -999,
+        //         z: -10,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: -15,
+                z: -15,
+            },
+            {
+                x: 999,
+                z: 999,
+            },
+            0.8,
+            "X"
+        );
+
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: 16,
+                z: 14,
+            },
+            {
+                x: -14,
+                z: -16,
+            },
+            0.8,
+            "X"
+        );
+
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: -30,
+        //         //x: 30,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     {
+        //         x: 999,
+        //         //x: -20,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
 
 
         // for (let i = 0; i < 1; i++) {
@@ -1286,8 +1398,9 @@ function init() {
   // testCrossScenario();
   // circleScenario();
 
-  tryingScenario_Bilas_1();
-  // tryingScenario_Bilas_1_debug();
+  // tryingScenario_Bilas_1();
+  tryingScenario_Bilas_1_debug();
+  // tryingScenario_Bilas_1_diagno_debug();
   // tryingScenario_sphere_Bilas_1_debug();
   // tryingScenario_Bilas_2();
   // tryingScenario_Bilas_3();
@@ -1552,7 +1665,7 @@ function animate() {
     spotLights[member.index].target.position.z = member.z;
 
 
-    // visualizeXZMagnitude(member, index);
+    visualizeXZMagnitude(member, index);
     // visualizeMagnitude(member, index)
     // visualizeVelocity(member, index);
 
@@ -1575,12 +1688,12 @@ function visualizeXZMagnitude(member, index) {
 
         // console.log(member.grad);
         let direction = new THREE.Vector3(0, 1, 0);
-        if (member.grad.x !== 0) {
+        if (member.grad.x !== undefined) {
             direction = new THREE.Vector3(member.grad.x, 0, 0);
+            xarrows[index].setDirection(direction.normalize());
+            xarrows[index].setLength(Math.abs(member.grad.x).toFixed(1) * 10);
         }
 
-        xarrows[index].setDirection(direction.normalize());
-        xarrows[index].setLength(direction.length() * 10);
     }
 
     if (zarrows.length > 0) {
@@ -1591,12 +1704,18 @@ function visualizeXZMagnitude(member, index) {
 
         // console.log(member.grad);
         let direction = new THREE.Vector3(0, 1, 0);
-        if (member.grad.z !== 0) {
+        if (member.grad.z !== undefined) {
             direction = new THREE.Vector3(0, 0, member.grad.z);
+            zarrows[index].setDirection(direction.normalize());
+            zarrows[index].setLength(Math.abs(member.grad.z).toFixed(1) * 10);
+
+            if(member.grad.z.toFixed(1) > 10){
+                console.log("?")
+            }
+
         }
 
-        zarrows[index].setDirection(direction.normalize());
-        zarrows[index].setLength(direction.length() * 10);
+
     }
 
 }
