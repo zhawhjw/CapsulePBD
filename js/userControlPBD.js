@@ -361,35 +361,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
       }
 
-      // let KSI = 0.02;
-      // if (entity_i.prev_grad.x === null){
-      //   entity_i.prev_grad.x = 0;
-      // }
-      // if (entity_i.prev_grad.z === null){
-      //   entity_i.prev_grad.z = 0;
-      // }
-      // if (entity_j.prev_grad.x === null){
-      //   entity_j.prev_grad.x = 0;
-      // }
-      // if (entity_j.prev_grad.z === null){
-      //   entity_j.prev_grad.z = 0;
-      // }
-      //
-      // let prev_grad_x_i = entity_i.prev_grad.x;
-      // let prev_grad_y_i = entity_i.prev_grad.z;
-      // let prev_grad_x_j = entity_j.prev_grad.x;
-      // let prev_grad_y_j = entity_j.prev_grad.z;
-      //
-      // grad_x_i = KSI* grad_x_i + (1-KSI) * prev_grad_x_i
-      // grad_y_i = KSI* grad_y_i + (1-KSI) * prev_grad_y_i
-      // grad_x_j = KSI* grad_x_j + (1-KSI) * prev_grad_x_j
-      // grad_y_j = KSI* grad_y_j + (1-KSI) * prev_grad_y_j
-      //
-      // entity_i.prev_grad.x = grad_x_i;
-      // entity_i.prev_grad.z = grad_y_i;
-      // entity_j.prev_grad.x = grad_x_j;
-      // entity_j.prev_grad.z = grad_y_j;
-
 
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
