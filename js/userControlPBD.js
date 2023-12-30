@@ -344,24 +344,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       grad_y_j = -grad_y_i;
 
 
-      // special case
-      console.log(i + "<==>" + j)
-
-      // rotation (facing angle) difference
-      let facingDiff = Math.abs(theta_i - theta_j);
-      // best points distance difference
-      let projectedPoint_j = PointOnLineSegment(agent_j.real_base, agent_j.real_tip, best_i);
-      let bestPointDiff = distance(projectedPoint_j.x, projectedPoint_j.z, best_j.x, best_j.z);
-      // if facing direction on the same line AND the best points are exactly facing with each other
-      // adding gradient value
-      if (bestPointDiff <= 0.01 &&  (facingDiff < 0.01 || facingDiff - Math.PI) <0.01 ){
-        // console.log(i + "<==>" + j + " : " + facingDiff + "||||||" + bestPointDiff)
-        grad_y_i = signNoP(grad_y_i) * Math.abs(grad_x_i);
-        grad_y_j = -grad_y_i;
-
-      }
-
-
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
       // console.log()
