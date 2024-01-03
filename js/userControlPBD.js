@@ -299,6 +299,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
                                       entity_i, entity_j,
                                       i = -1, j = -1) {
 
+
     const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
 
     const radius_init = 2 * AGENTSIZE;
@@ -310,10 +311,44 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     if (agentCentroidDist < radius_init) {
       radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
     }
-    const v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
-    const v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
-    const x0 = best_i.x - best_j.x;
-    const y0 = best_i.z - best_j.z;
+
+    let v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
+    let v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
+    let x0 = best_i.x - best_j.x;
+    let y0 = best_i.z - best_j.z;
+
+
+    // rotation (facing angle) difference
+    let facingDiff = Math.abs(theta_i - theta_j);
+    // best points distance difference
+    let projectedPoint_j = PointOnLineSegment(agent_j.real_base, agent_j.real_tip, best_i);
+    let projectedCenter_i = PointOnLineSegment(agent_j.real_base, agent_j.real_tip, entity_i.agent.position);
+    let toBase = distance(projectedCenter_i.x, projectedCenter_i.z, agent_j.real_base.x, agent_j.real_base.z);
+    let toTip = distance(projectedCenter_i.x, projectedCenter_i.z, agent_j.real_tip.x, agent_j.real_tip.z);
+
+    let bestPointDiff = distance(projectedPoint_j.x, projectedPoint_j.z, best_j.x, best_j.z);
+
+
+    // if (bestPointDiff <= 0.01 &&  (facingDiff < 0.01 || facingDiff - Math.PI) <0.01 ){
+    //   let normal_i;
+    //   let normal_j;
+    //
+    //     if(toBase <= toTip){
+    //       normal_i = agent_j.real_base.clone().sub(projectedCenter_i.clone()).normalize();
+    //
+    //     }else {
+    //       normal_i = agent_j.real_tip.clone().sub(projectedCenter_i.clone()).normalize();
+    //     }
+    //
+    //    v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
+    //    v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep - 0.1/timestep;
+    //    x0 = best_i.x - best_j.x;
+    //    y0 = best_i.z - best_j.z - 0.1;
+    // }
+
+
+
+
     const v_sq = v_x * v_x + v_y * v_y;
     const x0_sq = x0 * x0;
     const y0_sq = y0 * y0;
@@ -344,9 +379,23 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       grad_y_j = -grad_y_i;
 
 
+
+
+      // special case
+      console.log(i + "<==>" + j)
+
+
+
+
+      // if facing direction on the same line AND the best points are exactly facing with each other
+      // adding gradient value
+
+
+
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
       // console.log()
+
 
       delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
           s * 0.5 * grad_y_i,
@@ -670,6 +719,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
         let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
         // // ttc in long range collision paper
+
+
         let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(
             bestA, bestB,
             p_bestA, p_bestB,
