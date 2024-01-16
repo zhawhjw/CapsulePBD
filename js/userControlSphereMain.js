@@ -44,6 +44,18 @@ let zarrows = [];
 let parameters = {
     best:[],
     wallData: [],
+    counter:0,
+    dumpData:{
+        gradX:[],
+        gradZ: [],
+        deltaX:[],
+        deltaZ:[],
+        name : "",
+        delta: 0,
+        s:[],
+
+
+    }
 }
 
 const WORLDUNIT = 1
@@ -648,12 +660,12 @@ function init() {
             1,
             RADIUS * 1.5,
             {
-                x: -30,
-                z: -6,
+                x: -10,
+                z: -7.6,
             },
             {
                 x: 999,
-                z: -6,
+                z: -7.6,
             },
             0.8,
             "X"
@@ -665,7 +677,7 @@ function init() {
             1,
             RADIUS * 1.5,
             {
-                x: 30,
+                x: 10,
                 z: -10 + 1 * 4,
             },
             {
@@ -675,6 +687,9 @@ function init() {
             0.8,
             "X"
         );
+
+
+        parameters.dumpData.delta = Math.abs(agentData[0].z - agentData[1].z);
 
         // addColumnAgentGroup(
         //     agentData,
@@ -1668,6 +1683,12 @@ function animate() {
 
 
     });
+
+    parameters.counter += 1;
+    if( parameters.counter===500){
+        downloadData(parameters.dumpData, "delta_" + parameters.dumpData.delta.toFixed(1));
+    }
+
     renderer.render(scene, camera);
     stats.update();
 }
@@ -1676,6 +1697,22 @@ render();
 animate();
 
 // below are utiities
+function downloadData(dictionary, name){
+
+    const jsonString = JSON.stringify(dictionary);
+
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name + '.json'; // Name of the file to be downloaded
+
+    document.body.appendChild(a); // Append the link to the body
+    a.click(); // Programmatically click the link to trigger the download
+    document.body.removeChild(a); // Optionally, remove the link after download
+}
+
+
 function visualizeXZMagnitude(member, index) {
     if (xarrows.length > 0) {
 

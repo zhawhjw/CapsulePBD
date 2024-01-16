@@ -264,10 +264,20 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             delta_correction_j = clamp2D(s * agent_j.invmass * grad_x_j,
                 s * agent_j.invmass * grad_y_j,
                 MAX_DELTA);
+
+
+            customParams.dumpData.gradX.push([grad_x_i, grad_x_j]);
+            customParams.dumpData.gradZ.push([grad_y_i, grad_y_j]);
+            customParams.dumpData.s.push(s);
+
+
             agent_i.px += delta_correction_i.x;
             agent_i.pz += delta_correction_i.y;
             agent_j.px += delta_correction_j.x;
             agent_j.pz += delta_correction_j.y;
+
+            customParams.dumpData.deltaX.push([delta_correction_i.x, delta_correction_j.x]);
+            customParams.dumpData.deltaZ.push([delta_correction_i.y, delta_correction_j.y]);
 
             agent_i.grad[0] += delta_correction_i.x;
             agent_i.grad[1] += delta_correction_i.y;

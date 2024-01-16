@@ -44,6 +44,13 @@ let zarrows = [];
 let parameters = {
     best:[],
     wallData: [],
+    dumpData:{
+        gradX:[],
+        gradZ: [],
+        name : "",
+        delta: 0
+
+    }
 }
 
 const WORLDUNIT = 1
