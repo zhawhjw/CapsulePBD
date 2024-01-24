@@ -254,8 +254,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
             const s = stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
-            lengthV = Math.sqrt(s * agent_i.invmass * grad_x_i * s * agent_i.invmass * grad_x_i
-                + s * agent_i.invmass * grad_y_i * s * agent_i.invmass * grad_y_i);
 
             delta_correction_i = clamp2D(s * agent_i.invmass * grad_x_i,
                 s * agent_i.invmass * grad_y_i,
@@ -283,6 +281,12 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             agent_i.grad[1] += delta_correction_i.y;
             agent_j.grad[0] += delta_correction_j.x;
             agent_j.grad[1] += delta_correction_j.y;
+
+            // for utilities
+            agent_i.grad.x += grad_x_i;
+            agent_i.grad.z += grad_y_i;
+            agent_j.grad.x += grad_x_j;
+            agent_j.grad.z += grad_y_j;
 
         }
     }
@@ -449,6 +453,27 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
     while (pbdIters < ITERNUM) {
 
+        // clean previous accumulated gradient
+        i = 0;
+        while (i < sceneEntities.length) {
+            j = i + 1;
+            while (j < sceneEntities.length) {
+
+                sceneEntities[i].grad.x = 0;
+                sceneEntities[i].grad.z = 0;
+                sceneEntities[j].grad.x = 0;
+                sceneEntities[j].grad.z = 0;
+
+                sceneEntities[i].grad.dx = 0;
+                sceneEntities[i].grad.dz = 0;
+                sceneEntities[j].grad.dx = 0;
+                sceneEntities[j].grad.dz = 0;
+
+                j += 1;
+            }
+            i += 1;
+        }
+
         // wall collision (based on short range)
         i=0;
         while(i<sceneEntities.length)
@@ -491,6 +516,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
                 // utilities
                 customParams.best[i][j] = [bestA, bestB]
                 customParams.best[j][i] = [bestB, bestA]
+
+
 
                 // short range collision
                 // didn't correct position in real time
