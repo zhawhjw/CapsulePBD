@@ -1105,17 +1105,19 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
         // Calculate position vector connecting the two points
         let positionVector = { x: -4 - (-4), y: 4 - (-140) }
+        // let positionVector = { x: -4 - (sceneEntities[i].goal_x), y: 4 - (-40) }
         let velocityVector = { x: sceneEntities[i].vx, y: sceneEntities[i].vz }; // Velocity vector of the agent
 
         // Calculate the angle between the position vector and the velocity vector
         let angle_2 = angleBetweenVectors(positionVector, velocityVector);
-        // console.log("angle_2: ", 180-angle_2);
+        // console.log("angle_2: ", angle_2);
 
         // angle_2 = 180-angle_2;
         // console.log("later, angle_2: ", 180-angle_2);
 
 
         let x_dist_diff = Math.abs(-4 - sceneEntities[i].px);
+        let x_dist_diff_with_goal = Math.abs(sceneEntities[i].px - sceneEntities[i].goal_x);
 
         // if(x_dist_diff > 4 && dist_cur_to_path_middle > 8 && sceneEntities[i].pz >= 4 )
         // {
@@ -1127,32 +1129,44 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
         // if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz >= 4)
         // if(dist_cur_to_path_middle < 8 && angle_2>0.5)
-        if(dist_cur_to_path_middle < 8)
+        // if(dist_cur_to_path_middle < 13 && x_dist_diff > 4 )
+
+        // if(dist_cur_to_path_middle < 13 && 180-angle_2 > 0.1)
+        if(dist_cur_to_path_middle < 13 )
         {
           // const angleRad = 5 * (Math.PI/180);
           // const cosVal = Math.cos(angleRad)/100;
           // // console.log("cosVal: ", cosVal);
 
           const angleRad = 0.5 * (Math.PI/180);
-          console.log("angleRad: ", angleRad);
+          // console.log("angleRad: ", angleRad);
 
           // sceneEntities[i].goal_x =  sceneEntities[i].goal_x - 2 * sceneEntities[i].goal_x * Math.cos(angleRad);
           // sceneEntities[i].goal_z =  sceneEntities[i].goal_z - 2 * sceneEntities[i].goal_z * Math.sin(angleRad);
 
-          sceneEntities[i].goal_x =  sceneEntities[i].goal_x - 2 * Math.cos(angleRad);
-          sceneEntities[i].goal_z =  sceneEntities[i].goal_z - 2 * Math.sin(angleRad);
-
-          // console.log("inside hi ");
-          // console.log("angle: ", angle);
+          // sceneEntities[i].goal_x =  sceneEntities[i].goal_x - 4 * Math.cos(angleRad);
+          sceneEntities[i].goal_z =  sceneEntities[i].goal_z - 4 * Math.sin(angleRad);
         }
+        
 
-        // console.log("sceneEntities[i].goal_x: ", sceneEntities[i].goal_x, ", sceneEntities[i].goal_z: ", sceneEntities[i].goal_z);
+        // if(180-angle_2 < 1)
+        // {
+        //   sceneEntities[i].goal_z = -40 ;
+        //   // sceneEntities[i].goal_x = sceneEntities[i].x;
 
-        if(angle_2 < 1)
-        {
-          // console.log("inside hi ");
-          sceneEntities[i].goal_z = -140 ;
-        }
+        //   // console.log("Hi.... ");
+        // }
+        // console.log("sceneEntities[i].goal_z: ", sceneEntities[i].goal_z);
+
+        // if(sceneEntities[i].pz <= 4)
+        // {
+        //   // sceneEntities[i].goal_x = sceneEntities[i].x + x_dist_diff_with_goal/10000;
+        //   sceneEntities[i].goal_x = sceneEntities[i].px;
+        //   console.log("Hi3.... ");
+        // }
+
+        // console.log("sceneEntities[i].goal_x: ", sceneEntities[i].goal_x);
+
 
         // console.log("distance: ", distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz) );
         // if( distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz) < 5.5 && sceneEntities[i].pz <= 0.5 )
