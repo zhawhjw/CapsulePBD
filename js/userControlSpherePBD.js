@@ -8,8 +8,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     const AGENTSIZE = RADIUS * 2;
     const epsilon = 0.0001;
     const timestep = 0.03;
-    const ITERNUM = 1; // 3
-    const agentLength = RADIUS;
+    const ITERNUM = 6; // 3
+    const KSI = 0.01;
 
     // collision functions
 
@@ -190,11 +190,13 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             if (distToGoal > RADIUS) {
                 const dir_x = (agent_i.goal_x - agent_i.x) / distToGoal;
                 const dir_z = (agent_i.goal_z - agent_i.z) / distToGoal;
-                agent_i.vx = agent_i.v_pref * dir_x;
-                agent_i.vz = agent_i.v_pref * dir_z;
+                agent_i.vx = (1-KSI) *agent_i.vx+ KSI* agent_i.pref_speed * dir_x;
+                agent_i.vz = (1-KSI) *agent_i.vz+ KSI* agent_i.pref_speed * dir_z;
+                //agent_i.vx = agent_i.v_pref * dir_x;
+                //agent_i.vz = agent_i.v_pref * dir_z;
             }
-            agent_i.vx = 0.9999 * agent_i.vx;
-            agent_i.vz = 0.9999 * agent_i.vz;
+            //agent_i.vx = 0.9999 * agent_i.vx;
+            //agent_i.vz = 0.9999 * agent_i.vz;
         });
     }
 
@@ -203,7 +205,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     function longRangeConstraint(agent_i, agent_j) {
         const agentCentroidDist = distance(agent_i.px, agent_i.pz,
             agent_j.px, agent_j.pz);
-        const radius_init = 2 * AGENTSIZE;
+        const radius_init = 2 * RADIUS; // was AGENTSIZE
         const radius_sq_init = radius_init * radius_init;
         var radius_sq = radius_sq_init;
         const dv_i = 1.;  // 1./delta_t;
@@ -214,11 +216,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         }
         const v_x = (agent_i.px - agent_i.x) / timestep - (agent_j.px - agent_j.x) / timestep;
         const v_y = (agent_i.pz - agent_i.z) / timestep - (agent_j.pz - agent_j.z) / timestep;
-        const x0 = agent_i.x - agent_j.x;
-        const y0 = agent_i.z - agent_j.z;
+        let x0 = agent_i.x - agent_j.x;
+        let y0 = agent_i.z - agent_j.z;
         const v_sq = v_x * v_x + v_y * v_y;
-        const x0_sq = x0 * x0;
         const y0_sq = y0 * y0;
+        const x0_sq = x0 * x0;
         const x_sq = x0_sq + y0_sq;
         const a = v_sq;
         const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
@@ -227,10 +229,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         const d_sq = b_sq - a * c;
         const d = Math.sqrt(d_sq);
         const tao = (b - d) / a;
-
-
-
-
         // if (agent_i.index % 2 !== 0 && agent_j.index % 2 !== 0){
         //
         //   C_TAO0 = 6;
@@ -240,9 +238,24 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         // }else {
         //   return;
         // }
-
         let lengthV;
-        if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+        if (d_sq > 0.0 && tao > 0 && tao < C_TAU_MAX) {
+            let v_minus_x_diff_theta = b / ( Math.sqrt(v_sq) *  Math.sqrt(x0_sq))
+            let v_diff_theta = Math.atan2(v_y, v_x); //v_y/v_x
+            let x_diff_theta = Math.atan2(y0, x0);//y0/x0
+            
+            if(Math.abs(v_diff_theta-x_diff_theta) > 0.999*Math.PI && 
+            Math.abs(v_diff_theta-x_diff_theta) < 1.001*Math.PI
+            )
+            {
+                let r_xdiff = Math.sqrt(x_sq);
+                let x0_mod = r_xdiff * Math.cos(x_diff_theta)
+                let y0_mod = r_xdiff * Math.sin(x_diff_theta)
+                x0 = r_xdiff * Math.cos(x_diff_theta + Math.PI*0.001);
+                y0 = r_xdiff * Math.sin(x_diff_theta + Math.PI*0.001);
+                console.log("v-x angel " + (v_diff_theta-x_diff_theta) + " xangle " + x_diff_theta )
+                console.log("changed: x0,y0  (" + x0 + "," + y0 + ") new:" + x0_mod + " " +y0_mod);
+            }
             const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
             const tao_sq = c_tao * c_tao;
             const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
@@ -250,6 +263,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             const grad_x_j = -grad_x_i;
             const grad_y_j = -grad_y_i;
             const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+            //console.log("tao " + tao + " stiff " + stiff );
             const s = stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
             lengthV = Math.sqrt(s * agent_i.invmass * grad_x_i * s * agent_i.invmass * grad_x_i
@@ -259,11 +273,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
                 s * agent_i.invmass * grad_y_i,
                 MAX_DELTA);
 
-            delta_correction_j = clamp2D(s * agent_j.invmass * grad_x_j,
+            delta_correction_j =  clamp2D(s * agent_j.invmass * grad_x_j,
                 s * agent_j.invmass * grad_y_j,
                 MAX_DELTA);
-            agent_i.px += delta_correction_i.x;
-            agent_i.pz += delta_correction_i.y;
+            agent_i.px +=  delta_correction_i.x;
+            agent_i.pz += 44* delta_correction_i.y;
             agent_j.px += delta_correction_j.x;
             agent_j.pz += delta_correction_j.y;
 
@@ -272,14 +286,24 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             agent_j.grad[0] += delta_correction_j.x;
             agent_j.grad[1] += delta_correction_j.y;
 
+        
+
         }
+    }
+
+    function subtractVectors(vectorA, vectorB) {
+        if (vectorA.length !== vectorB.length) {
+            throw new Error('Vectors must be of the same dimension');
+        }
+
+        return vectorA.map((element, index) => element - vectorB[index]);
     }
 
     let C_TAU_MAX = 20;
     // const C_MAX_ACCELERATION = 0.01;
-    let C_TAO0 = 25; //
-    const C_LONG_RANGE_STIFF = 0.02;
-    const MAX_DELTA = 0.9;
+    let C_TAO0 = 30; //
+    const C_LONG_RANGE_STIFF = 0.04;
+    const MAX_DELTA = 0.001*AGENTSIZE;
 
     function clamp2D(vx,vy, maxValue) {
         const lengthV = Math.sqrt(vx * vx + vy * vy);
@@ -292,150 +316,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     }
 
 
-    function longRangeConstraintCapsule(best_i, best_j, p_best_i, p_best_j) {
-        const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
-
-        const radius_init = 2 * AGENTSIZE;
-        const radius_sq_init = radius_init * radius_init;
-        let radius_sq = radius_sq_init;
-        const dv_i = 1.;  // 1./delta_t;
-        let delta_correction_i = {"x":0, "y":0};
-        let delta_correction_j= {"x":0, "y":0};
-        if (agentCentroidDist < radius_init) {
-            radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
-        }
-        const v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
-        const v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
-        const x0 = best_i.x - best_j.x;
-        const y0 = best_i.z - best_j.z;
-        const v_sq = v_x * v_x + v_y * v_y;
-        const x0_sq = x0 * x0;
-        const y0_sq = y0 * y0;
-        const x_sq = x0_sq + y0_sq;
-        const a = v_sq;
-        const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
-        const b_sq = b * b;
-        const c = x_sq - radius_sq;
-        const d_sq = b_sq - a * c;
-        const d = Math.sqrt(d_sq);
-        const tao = (b - d) / a;
-        // console.log("ttc in long range paper: " + tao);
-
-        let lengthV;
-        let grad_x_i;
-        let grad_y_i;
-        let grad_x_j;
-        let grad_y_j;
-        let s;
-
-        if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
-            const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
-            const tao_sq = c_tao * c_tao;
-
-            grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-            grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-            grad_x_j = -grad_x_i;
-            grad_y_j = -grad_y_i;
-
-            const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
-            s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
-            // console.log()
-
-            delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
-                s * 0.5 * grad_y_i,
-                MAX_DELTA);
-
-            delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
-                s * 0.5 * grad_y_j,
-                MAX_DELTA);
-
-            // console.log("Long Range active");
-
-        }else {
-            grad_x_i = 0;
-            grad_y_i = 0;
-            grad_x_j = 0;
-            grad_y_j = 0;
-            s=0;
-        }
-
-
-        // return tao;
-        return [
-            delta_correction_i,
-            delta_correction_j,
-            [grad_x_i, grad_y_i],
-            [grad_x_j, grad_y_j],
-            s
-        ];
-    }
-
-    function getBestPointWithWall(xi, zi, wall){
-
-        const iCoords = rotateLineSegment(
-            xi,
-            zi + agentLength + RADIUS,
-            xi,
-            zi - agentLength - RADIUS,
-            sceneEntities[i].agent.rotation.z
-        );
-
-
-
-        // Agent A
-        const a = {
-            tip: new THREE.Vector3(iCoords[0], 0, iCoords[1]),
-            base: new THREE.Vector3(iCoords[2], 0, iCoords[3]),
-            radius: RADIUS,
-        };
-        // Wall B
-        const b = {
-            tip: new THREE.Vector3(wall.tip.x, 0, wall.tip.z),
-            base: new THREE.Vector3(wall.base.x, 0, wall.base.z),
-            radius: RADIUS,
-        };
-
-
-        // capsule A:
-        const a_Normal = a.tip.clone().sub(a.base.clone()).normalize();
-        const a_LineEndOffset = a_Normal.clone().multiplyScalar(a.radius);
-        const a_A = a.base.clone().add(a_LineEndOffset);
-        const a_B = a.tip.clone().sub(a_LineEndOffset);
-
-        // capsule B:
-        const b_Normal = b.tip.clone().sub(b.base.clone()).normalize();
-        const b_LineEndOffset = b_Normal.clone().multiplyScalar(b.radius);
-        const b_A = b.base.clone().add(b_LineEndOffset);
-        const b_B = b.tip.clone().sub(b_LineEndOffset);
-
-        // vectors between line endpoints:
-        const v0 = b_A.clone().sub(a_A);
-        const v1 = b_B.clone().sub(a_A);
-        const v2 = b_A.clone().sub(a_B);
-        const v3 = b_B.clone().sub(a_B);
-
-        // squared distances:
-        const d0 = v0.clone().dot(v0);
-        const d1 = v1.clone().dot(v1);
-        const d2 = v2.clone().dot(v2);
-        const d3 = v3.clone().dot(v3);
-
-        // select best potential endpoint on capsule A:
-        let bestA;
-        if (d2 < d0 || d2 < d1 || d3 < d0 || d3 < d1) {
-            bestA = a_B;
-        } else {
-            bestA = a_A;
-        }
-
-        // select point on capsule B line segment nearest to best potential endpoint on A capsule:
-        const bestB = ClosestPointOnLineSegment(b_A, b_B, bestA);
-
-        // now do the same for capsule A segment:
-        bestA = ClosestPointOnLineSegment(a_A, a_B, bestB);
-
-        return [bestA, bestB, a, b]
-    }
 
     function getCircleCenterWithWall(xi, zi, wall){
 
@@ -654,6 +534,12 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         item.vx = (item.px - item.x) / timestep;
         item.vz = (item.pz - item.z) / timestep;
         item.vy = (item.py - item.y) / timestep;
+
+        //let predicted_speed = Math.sqrt(item.vx*item.vx+item.vz*item.vz); 
+        let clamped_speed = clamp2D( item.vx, item.vz,  world.MAXSPEED)
+        item.vx = clamped_speed.x; 
+        item.vz = clamped_speed.y; 
+
         item.x = item.px;
         item.z = item.pz;
         item.y = item.py;

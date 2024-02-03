@@ -4,106 +4,16 @@ export function distance(x1, y1, x2, y2) {
   return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-
-
-// Function to calculate the angle between two vectors
-function angleBetweenVectors(v1, v2) {
-  // Calculate dot product
-  const dotProduct = v1.x * v2.x + v1.y * v2.y;
-
-  // Calculate magnitudes of vectors
-  const magnitudeV1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
-  const magnitudeV2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
-
-  // Calculate angle in radians using dot product and magnitudes
-  const angleRadians = Math.acos(dotProduct / (magnitudeV1 * magnitudeV2));
-
-  // Convert angle from radians to degrees
-  const angleDegrees = angleRadians * 180 / Math.PI;
-
-  return angleDegrees;
-}
-
-
-
-
-// Function to calculate the angle between two vectors
-function calculateAngle(point1_x, point1_z, point2_x, point2_z, velocity_x, velocity_z){
-
-  // Calculate vectors from point1 to point2 and from point1 to the velocity
-  const vector1 = { x: point2_x - point1_x, z: point2_z - point1_z };
-  const vector2 = { x: velocity_x - point1_x, z: velocity_z - point1_z };
-
-
-  // Calculate the dot product of the two vectors
-  const dotProduct = vector1.x * vector2.x + vector1.z * vector2.z;
-
-  // Calculate the magnitudes of the vectors
-  const magnitude1 = Math.sqrt(vector1.x * vector1.x + vector1.z * vector1.z);
-  const magnitude2 = Math.sqrt(vector2.x * vector2.x + vector2.z * vector2.z);
-
-  // Calculate the cosine of the angle
-  const cosineTheta = dotProduct / (magnitude1 * magnitude2);
-
-  // Calculate the angle in radians using the arccosine
-  const angleRadians = Math.acos(cosineTheta);
-
-  // Convert the angle to degrees
-  const angleDegrees = angleRadians * (180 / Math.PI);
-
-  return angleDegrees;
-}
-
-function degreeBetween(p1x, p1z, p2x, p2z){
-  // const vector1 = { x: 0.5, y: 0.866 }; // Example vector
-  // const vector2 = { x: -0.707, y: 0.707 }; // Example vector
-
-  // Calculate the dot product of the two vectors
-  const dotProduct = p1x * p2x + p1z * p2z;
-
-  // Calculate the magnitude (length) of the vectors
-  const magnitude1 = Math.sqrt(p1x * p1x + p1z * p1z);
-  const magnitude2 = Math.sqrt(p2x * p2x + p2z * p2z);
-
-  // Calculate the cosine of the angle between the vectors
-  const cosTheta = dotProduct / (magnitude1 * magnitude2);
-
-  // Calculate the angle in radians
-  const angleRad = Math.acos(cosTheta);
-
-  // Convert radians to degrees
-  const angleDeg = angleRad * (180 / Math.PI);
-
-  // Calculate the signed angle in degrees using the atan2 function
-  const signedAngleDeg = Math.atan2(p2z, p2x) - Math.atan2(p1z, p2x);
-
-  // Ensure the angle is between 0 and 360 degrees
-  const normalizedAngleDeg = (signedAngleDeg >= 0) ? signedAngleDeg : (signedAngleDeg + 2 * Math.PI) * (180 / Math.PI);
-
-return angleDeg;
-}
-
-
-
 export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
   const AGENTSIZE = RADIUS * 2;
   const epsilon = 0.0001;
   const timestep = 0.03;
   const ITERNUM = 1; // 3
   const agentLength = RADIUS;
-
-  // let C_TAU_MAX = 20;
-  // let C_TAO0 = 25; //
-  // const C_LONG_RANGE_STIFF = 0.02;
-  // const MAX_DELTA = 0.9;
-
-  let C_TAU_MAX = 20;
-  let C_TAO0 = 250; //
-  const C_LONG_RANGE_STIFF = 0.04;
-  const MAX_DELTA = 0.05;
-  let count =0;
+  const MAX_DELTA=AGENTSIZE;
 
   // collision functions
+
   function rotateLineSegment(x1, y1, x2, y2, r) {
     // Calculate the center of the line segment
     const centerX = (x1 + x2) / 2;
@@ -270,113 +180,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     }
   }
 
-
-  function longRangeConstraint__Sphere_V2(agent_i, agent_j)
-  {
-      const agentCentroidDist = distance(agent_i.px, agent_i.pz, 
-                agent_j.px, agent_j.pz );
-      const radius_init = 2*AGENTSIZE;
-      const radius_sq_init = radius_init * radius_init;
-      var radius_sq = radius_sq_init;
-      const dv_i = 1.;  // 1./delta_t;
-      let delta_correction_i, delta_correction_j;
-	    if (agentCentroidDist < radius_init) {
-	    	radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
-      }
-      const v_x = (agent_i.px - agent_i.x) / timestep - (agent_j.px - agent_j.x) / timestep;
-      const v_y = (agent_i.pz - agent_i.z) / timestep - (agent_j.pz - agent_j.z) / timestep;
-      const x0 = agent_i.x - agent_j.x; 
-      const y0 = agent_i.z - agent_j.z; 
-      const v_sq = v_x * v_x + v_y * v_y;
-      const x0_sq = x0 * x0;
-      const y0_sq = y0 * y0;
-      const x_sq = x0_sq + y0_sq; 
-      const a = v_sq;
-      const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this. 
-      const b_sq = b * b;
-		  const c = x_sq - radius_sq;
-		  const d_sq = b_sq - a * c;
-		  const d = Math.sqrt(d_sq);
-		  const tao = (b - d) / a;
-      let lengthV;
-      // console.log("For Sphere, tao: ", tao);
-      if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX){
-            
-            // console.log("For Sphere, tao: ", tao);
-        
-            const clamp_tao = Math.exp(-tao * tao / C_TAO0);
-            const c_tao = clamp_tao;  //Math.abs(tao - C_TAO0);
-            const tao_sq = c_tao * c_tao;
-            const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-            const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-            const grad_x_j = -grad_x_i;
-            const grad_y_j = -grad_y_i;
-            const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
-            const s =  stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass  * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
-            
-            // console.log("s: ", s);
-
-            // lengthV = Math.sqrt(s * agent_i.invmass * grad_x_i * s * agent_i.invmass * grad_x_i + s * agent_i.invmass * grad_y_i * s * agent_i.invmass * grad_y_i);
-            //if (lengthV > MAX_DELTA) {
-            //    console.log(lengthV);
-            //}
-            //delta_correction_i = {"x":s * agent_i.invmass * grad_x_i,
-            //                      "y":s * agent_i.invmass * grad_y_i}            
-            delta_correction_i = clamp2D(s * agent_i.invmass * grad_x_i,
-                                        s * agent_i.invmass * grad_y_i,
-                                        MAX_DELTA);          
-            //delta_correction_j = {"x":s * agent_j.invmass * grad_x_j,
-            //                      "y":s * agent_j.invmass * grad_y_j}
-            delta_correction_j = clamp2D(s * agent_j.invmass * grad_x_j,
-                                         s * agent_j.invmass * grad_y_j,
-                                         MAX_DELTA);  
-            
-            // console.log("delta_correction_i.x: ", delta_correction_i.x , "delta_correction_i.y: ", delta_correction_i.y);
-            // console.log("delta_correction_j.x: ", delta_correction_j.x , "delta_correction_j.y: ", delta_correction_j.y);
-            // console.log("\n");
-
-            agent_i.px += delta_correction_i.x; 
-            agent_i.pz += delta_correction_i.y;
-            agent_j.px += delta_correction_j.x;
-            agent_j.pz += delta_correction_j.y;
-      }
-  }
-
-
-
-  function collisionConstraint_Capsule(best_i, best_j, p_best_i, p_best_j) {
-
-    const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
-
-    const agentDist = agentCentroidDist - AGENTSIZE;
-    const dir_x = (p_best_j.x - p_best_i.x) / agentCentroidDist;
-    const dir_z = (p_best_j.z - p_best_i.z) / agentCentroidDist;
-    const agent_i_scaler = (1 / (1 + 1)) * agentDist;
-    const agent_j_scaler = (1 / (1 + 1)) * agentDist;
-
-      if (agentDist < 0) {
-
-      sceneEntities[i].px += agent_i_scaler * dir_x;
-      sceneEntities[i].pz += agent_i_scaler * dir_z;
-      sceneEntities[j].px += -agent_j_scaler * dir_x;
-      sceneEntities[j].pz += -agent_j_scaler * dir_z;
-        
-      sceneEntities[i].grad.dx += agent_i_scaler * dir_x;
-      sceneEntities[i].grad.dz += agent_i_scaler * dir_z;
-      sceneEntities[j].grad.dx += -agent_j_scaler * dir_x;
-      sceneEntities[j].grad.dz += -agent_j_scaler * dir_z;
-          
-    }
-
-    return [
-      sceneEntities[i].grad.x,
-      sceneEntities[i].grad.z,
-        [dir_x],
-        [dir_z]
-    ];
-  } 
-
-
   function agentVelocityPlanner() {
     sceneEntities.forEach(function (agent_i) {
       const distToGoal = distance(
@@ -398,8 +201,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
 
 
-  // function longRangeConstraint(agent_i, agent_j) {
-    function longRangeConstraint(theta_i, theta_j, agent_i, agent_j, i = -1, j = -1) {
+  function longRangeConstraint(agent_i, agent_j) {
     const agentCentroidDist = distance(agent_i.px, agent_i.pz,
         agent_j.px, agent_j.pz);
     const radius_init = 2 * AGENTSIZE;
@@ -426,10 +228,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     const d_sq = b_sq - a * c;
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
-
-
-
-
+    let taoCalc = tao;
     // if (agent_i.index % 2 !== 0 && agent_j.index % 2 !== 0){
     //
     //   C_TAO0 = 6;
@@ -441,49 +240,14 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     // }
 
     let lengthV;
-    let grad_x_i;
-    let grad_y_i;
-    let grad_x_j;
-    let grad_y_j;
-    let s;
-
     if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+      taoCalc=timestep* (1+  Math.floor(tao)/timestep);
       const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
       const tao_sq = c_tao * c_tao;
-      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * taoCalc) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
       const grad_x_j = -grad_x_i;
       const grad_y_j = -grad_y_i;
-
-
-
-//----------------------------------------------------  SPECIAL CASE CODE -- START ------------------------------------------------------------------------------------------
-      // special case
-     // console.log(i + "<==>" + j)
-
-      // rotation (facing angle) difference
-      let facingDiff = Math.abs(theta_i - theta_j);
-      //console.log( "theta_i: ", theta_i, ", theta_j: ", theta_j);
-
-      // best points distance difference
-      let projectedPoint_j = PointOnLineSegment(agent_j.real_base, agent_j.real_tip, best_i);
-      let bestPointDiff = distance(projectedPoint_j.x, projectedPoint_j.z, best_j.x, best_j.z);
-
-      // if facing direction on the same line AND the best points are exactly facing with each other
-      // adding gradient value
-      // if (bestPointDiff <= 0.01 &&  (facingDiff < 0.01 || facingDiff - Math.PI) <0.01 ){
-      if (bestPointDiff <= 2.0 &&  (facingDiff < 0.1 || facingDiff - Math.PI) <0.1 ){
-        //  console.log(i + "<==>" + j + " : " + facingDiff + "||||||" + bestPointDiff)
-        grad_y_i = signNoP(grad_y_i) * Math.abs(grad_x_i);
-        grad_y_j = -grad_y_i;
-        //console.log( "After, grad_y_i: ", grad_y_i);
-        //console.log("\n");
-      }
-
-//----------------------------------------------------  SPECIAL CASE CODE -- END ------------------------------------------------------------------------------------------
-
-
-
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       const s = stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
@@ -508,10 +272,12 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       agent_j.grad[1] += delta_correction_j.y;
 
     }
-
   }
 
-
+  let C_TAU_MAX = 20;
+  // const C_MAX_ACCELERATION = 0.01;
+  let C_TAO0 = 25; //
+  const C_LONG_RANGE_STIFF = 1.0;
 
   function clamp2D(vx,vy, maxValue) {
     const lengthV = Math.sqrt(vx * vx + vy * vy);
@@ -531,6 +297,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
                                       entity_i, entity_j,
                                       i = -1, j = -1) {
 
+
     const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
 
     const radius_init = 2 * AGENTSIZE;
@@ -542,10 +309,16 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     if (agentCentroidDist < radius_init) {
       radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
     }
-    const v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
-    const v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
-    const x0 = best_i.x - best_j.x;
-    const y0 = best_i.z - best_j.z;
+
+    let v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
+    let v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
+    let x0 = best_i.x - best_j.x;
+    let y0 = best_i.z - best_j.z;
+
+
+    // rotation (facing angle) difference
+    // best points distance difference
+
     const v_sq = v_x * v_x + v_y * v_y;
     const x0_sq = x0 * x0;
     const y0_sq = y0 * y0;
@@ -558,8 +331,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
     // console.log("ttc in long range paper: " + tao);
-
-    let lengthV;
+    let taoCalc = tao;
     let grad_x_i;
     let grad_y_i;
     let grad_x_j;
@@ -567,85 +339,40 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     let s;
 
     if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
-      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
+
+      let v_diff_theta = Math.atan2(v_y, v_x); //v_y/v_x
+      let x_diff_theta = Math.atan2(y0, x0);//y0/x0
+      
+      if(Math.abs(v_diff_theta-x_diff_theta) > 0.99*Math.PI && 
+      Math.abs(v_diff_theta-x_diff_theta) < 1.01*Math.PI 
+      )
+      {
+          let r_xdiff = Math.sqrt(x_sq);
+          let x0_mod = r_xdiff * Math.cos(x_diff_theta)
+          let y0_mod = r_xdiff * Math.sin(x_diff_theta)
+          x0 = r_xdiff * Math.cos(x_diff_theta + Math.PI*0.01);
+          y0 = r_xdiff * Math.sin(x_diff_theta + Math.PI*0.01);
+          console.log("v-x angel " + (v_diff_theta-x_diff_theta) + " xangle " + x_diff_theta )
+          console.log("changed: x0,y0  (" + x0 + "," + y0 + ") new:" + x0_mod + " " +y0_mod);
+      }
+      taoCalc = (Math.floor(tao)/timestep) * timestep;
+      const c_tao = Math.exp(-taoCalc * taoCalc / C_TAO0);  //Math.abs(tao - C_TAO0);
       const tao_sq = c_tao * c_tao;
 
-      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-      grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      taoCalc+=timestep;
+      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * taoCalc) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
       grad_x_j = -grad_x_i;
       grad_y_j = -grad_y_i;
 
-      //console.log( "Before, grad_y_i: ", grad_y_i, ", grad_x_i: ", grad_x_i);
-      
       // special case
+      console.log(i + "<==>" + j)
 
-      // rotation (facing angle) difference
-      let facingDiff = Math.abs(theta_i - theta_j);
-      //console.log( "theta_i: ", theta_i, ", theta_j: ", theta_j);
-
-      // best points distance difference
-      let projectedPoint_j = PointOnLineSegment(agent_j.real_base, agent_j.real_tip, best_i);
-      let bestPointDiff = distance(projectedPoint_j.x, projectedPoint_j.z, best_j.x, best_j.z);
-
-      // console.log("bestPointDiff: ", bestPointDiff);
-      // console.log("agentCentroidDist: ", agentCentroidDist);
-
-/*
       // if facing direction on the same line AND the best points are exactly facing with each other
       // adding gradient value
-      // if (bestPointDiff <= 0.01 &&  (facingDiff < 0.01 || facingDiff - Math.PI) <0.01 ){
-      if (bestPointDiff <= 2.0 &&  (facingDiff < 0.1 || facingDiff - Math.PI) <0.1 ){
-        
-        //  console.log(i + "<==>" + j + " : " + facingDiff + "||||||" + bestPointDiff)
-
-        // grad_y_i = signNoP(grad_y_i) * Math.abs(grad_x_i);
-        // console.log("grad_y_i: ", grad_y_i);
-
-        grad_y_i = signNoP(grad_y_i) * (Math.abs(grad_x_i)/1.2);   //used this
-        // console.log("grad_y_i: ", grad_y_i);
-
-        // grad_y_i = signNoP(grad_y_i) * (  Math.abs(grad_x_i)/1.4  ); 
-
-        // grad_y_i = signNoP(grad_y_i) * (Math.abs(grad_x_i) * 1.2);
-
-        grad_y_j = -grad_y_i;
-      }
-*/
-
-
-      // let KSI = 0.02;
-      // if (entity_i.prev_grad.x === null){
-      //   entity_i.prev_grad.x = 0;
-      // }
-      // if (entity_i.prev_grad.z === null){
-      //   entity_i.prev_grad.z = 0;
-      // }
-      // if (entity_j.prev_grad.x === null){
-      //   entity_j.prev_grad.x = 0;
-      // }
-      // if (entity_j.prev_grad.z === null){
-      //   entity_j.prev_grad.z = 0;
-      // }
-      //
-      // let prev_grad_x_i = entity_i.prev_grad.x;
-      // let prev_grad_y_i = entity_i.prev_grad.z;
-      // let prev_grad_x_j = entity_j.prev_grad.x;
-      // let prev_grad_y_j = entity_j.prev_grad.z;
-      //
-      // grad_x_i = KSI* grad_x_i + (1-KSI) * prev_grad_x_i
-      // grad_y_i = KSI* grad_y_i + (1-KSI) * prev_grad_y_i
-      // grad_x_j = KSI* grad_x_j + (1-KSI) * prev_grad_x_j
-      // grad_y_j = KSI* grad_y_j + (1-KSI) * prev_grad_y_j
-      //
-      // entity_i.prev_grad.x = grad_x_i;
-      // entity_i.prev_grad.z = grad_y_i;
-      // entity_j.prev_grad.x = grad_x_j;
-      // entity_j.prev_grad.z = grad_y_j;
-
 
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
-      // console.log()
 
       delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
           s * 0.5 * grad_y_i,
@@ -928,57 +655,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       i += 1;
     }
 
-
-
-
-
-    
- /*   
-    i=0
-    while(i<sceneEntities.length)
-    {
-        j=i+1;
-        while(j<sceneEntities.length)
-        {
-          //collisionConstraint(sceneEntities[i],sceneEntities[j])
-          longRangeConstraint__Sphere_V2(sceneEntities[i],sceneEntities[j])
-          j+=1;
-        }
-        i+=1
-    }
-*/
-
-
-
-
-
-/*
-// long-range collision avoidance for sphere.
-    i=0
-    while(i<sceneEntities.length)
-    {
-        j=i+1;
-        while(j<sceneEntities.length)
-        {
-          // console.log(i + " rotation : " + sceneEntities[i].agent.rotation.z);
-          // console.log(j + " rotation : " + sceneEntities[j].agent.rotation.z);
-
-          // console.log(i + " rotation : " + sceneEntities[i].member.rotation.z);
-          // console.log(j + " rotation : " + sceneEntities[j].agent.rotation.z);
-
-          // let z_rot_agant_i = sceneEntities[i].agent.rotation.z;
-          // let z_rot_agant_j = sceneEntities[j].agent.rotation.z;
-
-          // longRangeConstraint(sceneEntities[i].agent.rotation.z, sceneEntities[j].agent.rotation.z, sceneEntities[i], sceneEntities[j], i = -1, j = -1)
-          // longRangeConstraint(z_rot_agant_i, z_rot_agant_j, sceneEntities[i], sceneEntities[j], i = -1, j = -1);
-
-          j+=1;
-        }
-        i+=1
-    }
-*/
-
-/*
     // wall collision (based on short range)
     i=0;
     while(i<sceneEntities.length)
@@ -987,232 +663,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       while(j<customParams.wallData.length)
       {
         let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getBestPointWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
-
-        // console.log("p_bestA: ", p_bestA);
-        // console.log("w_bestB: ", w_bestB);
-        let dist_wall_to_agent = distance(p_bestA.x, p_bestA.z, w_bestB.x, w_bestB.z);
-        // let dist_cur_to_path_middle = distance(sceneEntities[i].goal_x, sceneEntities[i].goal_z, sceneEntities[i].px, sceneEntities[i].pz);
-        let dist_cur_to_path_middle = distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz);
-
-        let x_dist_diff = Math.abs(-4 - sceneEntities[i].px);
-        // console.log("x_dist_diff: ", x_dist_diff);
-        
-        // if(dist_wall_to_agent < 4)
-        // {
-        //   console.log("dist_wall_to_agent: ", dist_wall_to_agent);
-        // }
-
-        // if(dist_cur_to_path_middle > 4 && dist_wall_to_agent < 7)
-        if(x_dist_diff > 4)
-        {
-
-          // console.log("x_dist_diff: ", x_dist_diff);
-
-
-        //   for (let i = 0; i < 9; i++) {
-        //     for (let j = 0; j < 6; j++) {
-        //         // addColumnAgentGroup(
-        //         //     agentData,
-        //         //     1,
-        //         //     RADIUS * 1.5,
-        //         //     {
-        //         //         x: 15 - i * 5,
-        //         //         z: 42 - j * 5,
-        //         //     },
-        //         //     {
-        //         //         x: -4,
-        //         //         z: 4,
-        //         //     },
-        //         //     0.8,
-        //         //     "X"
-        //         // );
-
-        //         sceneEntities[i].goal_z = -150 ;
-
-    
-        //     }
-        // }
-
-
-          // for (let k = 0; k < 53; k++) {
-          //     sceneEntities[k].goal_z = -150 ;
-          //   }
-            // console.log("sceneEntities[i].z: ", sceneEntities[i].goal_z);
-
-            sceneEntities[i].goal_x = -4 ;
-            sceneEntities[i].goal_z = 4 ;
-
-            // sceneEntities[i].goal_x =  (x_dist_diff/20000);
-            // sceneEntities[i].goal_z = 4 ;
-
-        }
-
-        if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz <= 4 )
-        {
-          sceneEntities[i].goal_z = -140 ;
-          // console.log("dist_cur_to_path_middle: ", dist_cur_to_path_middle);
-          
-        }
-        // console.log("sceneEntities[i].goal_z: ", sceneEntities[i].goal_z);
-        
-
-        let penetration_normal = p_bestA.clone().sub(w_bestB);
-        const len = penetration_normal.length();
-        penetration_normal.divideScalar(len); // normalize
-        const penetration_depth = sceneEntities[i].radius + Math.sqrt(2) * sceneEntities[i].radius - len;
-        const intersects = penetration_depth > 0;
-        if (intersects) {
-          sceneEntities[i].colliding = true;
-
-          sceneEntities[i].px += penetration_normal.x * 1 * penetration_depth;
-          sceneEntities[i].pz += penetration_normal.z * 1 * penetration_depth;
-
-        }
-
-        j+=1;
-      }
-      i+=1
-    }
-*/
-
-
-
-
-
-
-    // wall collision (based on short range)
-    i=0;
-    while(i<sceneEntities.length)
-    {
-      j=0;
-      while(j<customParams.wallData.length)
-      {
-        let [p_bestA, w_bestB, p_agent_i,p_agent_j] = getBestPointWithWall(sceneEntities[i].px, sceneEntities[i].pz, customParams.wallData[j]);
-
-        let dist_wall_to_agent = distance(p_bestA.x, p_bestA.z, w_bestB.x, w_bestB.z);
-        // let dist_cur_to_path_middle = distance(sceneEntities[i].goal_x, sceneEntities[i].goal_z, sceneEntities[i].px, sceneEntities[i].pz);
-
-        // let dist_cur_to_path_middle = distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz);
-        let dist_cur_to_path_middle = distance(sceneEntities[i].goal_x, sceneEntities[i].goal_z, sceneEntities[i].px, sceneEntities[i].pz);
-
-        // let angle = calculateAngle(-4, 4, -4, -140, sceneEntities[i].vx, sceneEntities[i].vz);
-        // let angle = calculateAngle(sceneEntities[i].vx, sceneEntities[i].vz, -4, -140, -4, 4);
-        let angle = calculateAngle( -4, -140, -4, 4, sceneEntities[i].vx, sceneEntities[i].vz);
-        // console.log("angle: ", angle);
-
-
-
-
-        // Calculate position vector connecting the two points
-        let positionVector = { x: -4 - (-4), y: 4 - (-140) }
-        // let positionVector = { x: -4 - (sceneEntities[i].goal_x), y: 4 - (-40) }
-        let velocityVector = { x: sceneEntities[i].vx, y: sceneEntities[i].vz }; // Velocity vector of the agent
-
-        // Calculate the angle between the position vector and the velocity vector
-        let angle_2 = angleBetweenVectors(positionVector, velocityVector);
-        // console.log("angle_2: ", angle_2);
-
-        // angle_2 = 180-angle_2;
-        // console.log("later, angle_2: ", 180-angle_2);
-
-
-        let x_dist_diff = Math.abs(-4 - sceneEntities[i].px);
-        let x_dist_diff_with_goal = Math.abs(sceneEntities[i].px - sceneEntities[i].goal_x);
-
-        // if(x_dist_diff > 4 && dist_cur_to_path_middle > 8 && sceneEntities[i].pz >= 4 )
-        // {
-        //     sceneEntities[i].goal_x = -4 ;
-        //     sceneEntities[i].goal_z = 4 ;
-        // }
-
-        // console.log("dist_cur_to_path_middle: ", dist_cur_to_path_middle);
-
-        // if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz >= 4)
-        // if(dist_cur_to_path_middle < 8 && angle_2>0.5)
-        // if(dist_cur_to_path_middle < 13 && x_dist_diff > 4 )
-
-        // if(dist_cur_to_path_middle < 13 && 180-angle_2 > 0.1)
-        if(dist_cur_to_path_middle < 13 )
-        {
-          // const angleRad = 5 * (Math.PI/180);
-          // const cosVal = Math.cos(angleRad)/100;
-          // // console.log("cosVal: ", cosVal);
-
-          const angleRad = 0.5 * (Math.PI/180);
-          // console.log("angleRad: ", angleRad);
-
-          // sceneEntities[i].goal_x =  sceneEntities[i].goal_x - 2 * sceneEntities[i].goal_x * Math.cos(angleRad);
-          // sceneEntities[i].goal_z =  sceneEntities[i].goal_z - 2 * sceneEntities[i].goal_z * Math.sin(angleRad);
-
-          // sceneEntities[i].goal_x =  sceneEntities[i].goal_x - 4 * Math.cos(angleRad);
-          sceneEntities[i].goal_z =  sceneEntities[i].goal_z - 4 * Math.sin(angleRad);
-        }
-        
-
-        // if(180-angle_2 < 1)
-        // {
-        //   sceneEntities[i].goal_z = -40 ;
-        //   // sceneEntities[i].goal_x = sceneEntities[i].x;
-
-        //   // console.log("Hi.... ");
-        // }
-        // console.log("sceneEntities[i].goal_z: ", sceneEntities[i].goal_z);
-
-        // if(sceneEntities[i].pz <= 4)
-        // {
-        //   // sceneEntities[i].goal_x = sceneEntities[i].x + x_dist_diff_with_goal/10000;
-        //   sceneEntities[i].goal_x = sceneEntities[i].px;
-        //   console.log("Hi3.... ");
-        // }
-
-        // console.log("sceneEntities[i].goal_x: ", sceneEntities[i].goal_x);
-
-
-        // console.log("distance: ", distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz) );
-        // if( distance(-4, 4, sceneEntities[i].px, sceneEntities[i].pz) < 5.5 && sceneEntities[i].pz <= 0.5 )
-        // {
-        //   sceneEntities[i].goal_z = -140 ;
-        //   console.log(" Hi");
-        // }
-
-
-
-        /*
-        // if(dist_cur_to_path_middle > 4 && dist_wall_to_agent < 7)
-        if(x_dist_diff > 4 && dist_cur_to_path_middle > 8 && sceneEntities[i].pz >= 4 )
-        {
-            sceneEntities[i].goal_x = -4 ;
-            sceneEntities[i].goal_z = 4 ;
-
-            // sceneEntities[i].goal_x =  (x_dist_diff/20000);
-            // sceneEntities[i].goal_z = 4 ;
-        }
-
-        let degree1 = degreeBetween(sceneEntities[i].px, sceneEntities[i].pz,-4, 4);
-        // console.log("inside rotation loop. ", degree1);
-
-        // if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz >= 4 && sceneEntities[i].already_rotated === false)
-        // if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz >= 4 && degree1>45 && degree1<100)
-        if(dist_cur_to_path_middle < 8 )
-        {
-          const angleRad = 5 * (Math.PI/180);
-          const cosVal = Math.cos(angleRad)/100;
-          // console.log("cosVal: ", cosVal);
-          sceneEntities[i].goal_x =  sceneEntities[i].goal_x - sceneEntities[i].goal_x * THREE.MathUtils.degToRad(cosVal);
-          
-        }
-
-        if(dist_cur_to_path_middle < 8 && sceneEntities[i].pz <= 4 )
-        // if(dist_cur_to_path_middle < 8 )
-        {
-          
-          sceneEntities[i].goal_z = -140;
-          // console.log("dist_cur_to_path_middle: ", dist_cur_to_path_middle);
-        }
-
-        // console.log("sceneEntities[i].goal_z: ", sceneEntities[i].goal_z);
-      */
-
 
         let penetration_normal = p_bestA.clone().sub(w_bestB);
         const len = penetration_normal.length();
@@ -1233,16 +683,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     }
 
 
-
-
-
-
-
-
-
- 
-/*
-    //Capsule to Capsule long-range collision avoidance.
     i = 0;
     while (i < sceneEntities.length) {
       j = i + 1;
@@ -1256,6 +696,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
         let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
         // // ttc in long range collision paper
+
+
         let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(
             bestA, bestB,
             p_bestA, p_bestB,
@@ -1264,6 +706,9 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             sceneEntities[i], sceneEntities[j],
             i, j
         );
+
+        sceneEntities[i].sphere = bestA;
+        sceneEntities[j].sphere = bestB;
 
 
         sceneEntities[i].px += delta_correction_i.x;
@@ -1308,25 +753,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         //   sceneEntities[j].pz +=
         //       -1 * penetration_normal.y * 0.5 * penetration_depth;
         // }
-
-        j += 1;
-      }
-      i += 1;
-    }
-*/
-
-
-
-  
-    i = 0;
-    while (i < sceneEntities.length) {
-      j = i + 1;
-      while (j < sceneEntities.length) {
-
-        let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
-        let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-        // // ttc in long range collision paper
-        let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = collisionConstraint_Capsule(bestA, bestB, p_bestA, p_bestB);
 
         j += 1;
       }

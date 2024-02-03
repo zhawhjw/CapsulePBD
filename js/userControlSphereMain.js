@@ -9,6 +9,8 @@ let world = {
     x: 80,
     z: 80,
 };
+const PREFSPEED = 1.0;
+
 let agentData = [];
 let pickableObjects = [];
 let selected = [];
@@ -512,7 +514,7 @@ function init() {
             },
             {
                 x: -20,
-                z: -5,
+                z: 0,
             },
             0.8,
             "X"
@@ -523,12 +525,12 @@ function init() {
             1,
             RADIUS * 4,
             {
-                x: -10,
-                z: 10,
+                x: -20,
+                z: 0,
             },
             {
                 x: 20,
-                z: -20,
+                z: 0,
             },
             0.8,
             "X"
@@ -626,6 +628,21 @@ function init() {
     }
 
     function tryingScenario_Bilas_1_debug() {
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: -30,
+                z: -6,
+            },
+            {
+                x: 999,
+                z: -6,
+            },
+            PREFSPEED, // velocity magnitude
+            "X"
+        );
 
         addColumnAgentGroup(
             agentData,
@@ -633,67 +650,33 @@ function init() {
             RADIUS * 1.5,
             {
                 x: 30,
-                z: -10,
-            },
-            {
-                x: -999,
-                z: -10,
-            },
-            0.8,
-            "X"
-        );
-
-        addColumnAgentGroup(
-            agentData,
-            1,
-            RADIUS * 1.5,
-            {
-                x: -30,
-                //x: 30,
                 z: -6,
             },
             {
-                x: 999,
+                x: -999,
                 z: -6,
             },
-            0.8,
+            PREFSPEED, //velocity magnitude
             "X"
         );
 
-
-        addColumnAgentGroup(
-            agentData,
-            1,
-            RADIUS * 1.5,
-            {
-                x: 30,
-                z: -10 + 1 * 6,
-            },
-            {
-                x: -999,
-                z: -10 + 1 * 6,
-            },
-            0.8,
-            "X"
-        );
-
-        addColumnAgentGroup(
-            agentData,
-            1,
-            RADIUS * 1.5,
-            {
-                x: -30,
-                //x: 30,
-                z: -6 + 1 * 6,
-            },
-            {
-                x: 999,
-                //x: -20,
-                z: -6 + 1 * 6,
-            },
-            0.8,
-            "X"
-        );
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: -30,
+        //         //x: 30,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     {
+        //         x: 999,
+        //         //x: -20,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
 
 
         // for (let i = 0; i < 1; i++) {
@@ -806,6 +789,119 @@ function init() {
             0.8,
             "X"
         );
+
+
+        // for (let i = 0; i < 1; i++) {
+        //     for (let j = 0; j < 2; j++) {
+        //         addColumnAgentGroup(
+        //             agentData,
+        //             1,
+        //             RADIUS * 1.5,
+        //             {
+        //                 x: 30 - i * 6,
+        //                 //x: 30,
+        //                 z: -10 + j * 6,
+        //             },
+        //             {
+        //                 x: -999,
+        //                 //x: -20,
+        //                 z: -10 + j * 6,
+        //             },
+        //             0.8,
+        //             "X"
+        //         );
+        //
+        //         addColumnAgentGroup(
+        //             agentData,
+        //             1,
+        //             RADIUS * 1.5,
+        //             {
+        //                 x: -30 + i * 6,
+        //                 //x: 30,
+        //                 z: -6 + j * 6,
+        //             },
+        //             {
+        //                 x: 999,
+        //                 //x: -20,
+        //                 z: -6 + j * 6,
+        //             },
+        //             0.8,
+        //             "X"
+        //         );
+        //
+        //     }
+        // }
+    }
+
+    function tryingScenario_Bilas_1_deviate_debug() {
+
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: 30,
+        //         z: -10,
+        //     },
+        //     {
+        //         x: -999,
+        //         z: -10,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: -30,
+                //x: 30,
+                z: -6 - 2.5,
+            },
+            {
+                x: 999,
+                z: -6 - 2.5,
+            },
+            0.8,
+            "X"
+        );
+
+
+        addColumnAgentGroup(
+            agentData,
+            1,
+            RADIUS * 1.5,
+            {
+                x: 30,
+                z: -6,
+            },
+            {
+                x: -999,
+                z: -6,
+            },
+            0.8,
+            "X"
+        );
+
+        // addColumnAgentGroup(
+        //     agentData,
+        //     1,
+        //     RADIUS * 1.5,
+        //     {
+        //         x: -30,
+        //         //x: 30,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     {
+        //         x: 999,
+        //         //x: -20,
+        //         z: -6 + 1 * 6,
+        //     },
+        //     0.8,
+        //     "X"
+        // );
 
 
         // for (let i = 0; i < 1; i++) {
@@ -1239,6 +1335,7 @@ function init() {
                 vy: 0.0,
                 vz: vz,
                 v_pref: Math.sqrt(vx * vx + vz * vz),
+                pref_speed: velocityMagnitude,
                 radius: RADIUS,
                 invmass: 0.5,
                 colliding: false,
@@ -1267,22 +1364,23 @@ function init() {
     startY = -20;
     goalY = 20;
     world.distanceConstraints = [];
+    world.MAXSPEED = PREFSPEED*1.4;
 
     // defaultScenario();
     // testScenario()
     // testCrossScenario();58
-    // testCrossWithDiagnoScenario();
+     testCrossWithDiagnoScenario();
     // testHallwayScenario();
     // testCrossScenario();
     // circleScenario();
 
     // tryingScenario_Bilas_1();
-    //   tryingScenario_Bilas_1_debug();
-    // tryingScenario_sphere_Bilas_1_debug();
+    //tryingScenario_Bilas_1_debug();
 
+    //  tryingScenario_Bilas_1_deviate_debug();
     // tryingScenario_Bilas_2();
     // tryingScenario_Bilas_3();
-      tryingScenario_Bilas_3_debug();
+     // tryingScenario_Bilas_3_debug();
     // tryingScenario_Bilas_2p5();
 
     let agentGeom, agentMaterial, agent;
