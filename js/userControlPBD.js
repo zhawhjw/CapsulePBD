@@ -131,6 +131,39 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     return Math.hypot(dx, dy);
   }
 
+  function areCollinear(vector1, vector2) {
+    // Ensure vectors are of the same dimension
+    if (vector1.length !== vector2.length) {
+      return false;
+    }
+
+    // Find the ratio of the first non-zero pair of elements
+    let ratio;
+    for (let i = 0; i < vector1.length; i++) {
+      if (vector1[i] !== 0 && vector2[i] !== 0) {
+        ratio = vector1[i] / vector2[i];
+        break;
+      }
+    }
+
+    // Check if all corresponding elements are in the same ratio
+    for (let i = 0; i < vector1.length; i++) {
+      // Handle division by zero cases
+      if (vector1[i] === 0 && vector2[i] !== 0 || vector1[i] !== 0 && vector2[i] === 0) {
+        return false;
+      }
+
+      // Check the ratio
+      if (vector1[i] !== 0 && vector2[i] !== 0) {
+        if (vector1[i] / vector2[i] !== ratio) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   /*  -----------------------  */
   /*  TODO modify lines below  */
   /*  -----------------------  */
@@ -201,10 +234,86 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
 
 
-  function longRangeConstraint(agent_i, agent_j) {
+  // function longRangeConstraint(agent_i, agent_j, agent_i_rad= AGENTSIZE, agent_j_rad = AGENTSIZE) {
+  //   const agentCentroidDist = distance(agent_i.px, agent_i.pz,
+  //       agent_j.px, agent_j.pz);
+  //   const radius_init = agent_i_rad + agent_j_rad;
+  //   const radius_sq_init = radius_init * radius_init;
+  //   var radius_sq = radius_sq_init;
+  //   const dv_i = 1.;  // 1./delta_t;
+  //   let delta_correction_i = {"x":0, "y":0};
+  //   let delta_correction_j= {"x":0, "y":0};
+  //   if (agentCentroidDist < radius_init) {
+  //     radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
+  //   }
+  //   const v_x = (agent_i.px - agent_i.x) / timestep - (agent_j.px - agent_j.x) / timestep;
+  //   const v_y = (agent_i.pz - agent_i.z) / timestep - (agent_j.pz - agent_j.z) / timestep;
+  //   const x0 = agent_i.x - agent_j.x;
+  //   const y0 = agent_i.z - agent_j.z;
+  //   const v_sq = v_x * v_x + v_y * v_y;
+  //   const x0_sq = x0 * x0;
+  //   const y0_sq = y0 * y0;
+  //   const x_sq = x0_sq + y0_sq;
+  //   const a = v_sq;
+  //   const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
+  //   const b_sq = b * b;
+  //   const c = x_sq - radius_sq;
+  //   const d_sq = b_sq - a * c;
+  //   const d = Math.sqrt(d_sq);
+  //   const tao = (b - d) / a;
+  //   let taoCalc = tao;
+  //   // if (agent_i.index % 2 !== 0 && agent_j.index % 2 !== 0){
+  //   //
+  //   //   C_TAO0 = 6;
+  //   // }else if (agent_i.index % 2 === 0 && agent_j.index % 2 === 0){
+  //   //
+  //   //   C_TAO0 = 80;
+  //   // }else {
+  //   //   return;
+  //   // }
+  //
+  //   let lengthV;
+  //   if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+  //     taoCalc=timestep* (1+  Math.floor(tao)/timestep);
+  //     const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
+  //     const tao_sq = c_tao * c_tao;
+  //     const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+  //     const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * taoCalc) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+  //     const grad_x_j = -grad_x_i;
+  //     const grad_y_j = -grad_y_i;
+  //
+  //
+  //
+  //
+  //     const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+  //     const s = stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+  //
+  //
+  //
+  //     delta_correction_i = clamp2D(s * agent_i.invmass * grad_x_i,
+  //         s * agent_i.invmass * grad_y_i,
+  //         MAX_DELTA);
+  //
+  //     delta_correction_j = clamp2D(s * agent_j.invmass * grad_x_j,
+  //         s * agent_j.invmass * grad_y_j,
+  //         MAX_DELTA);
+  //     agent_i.px += delta_correction_i.x;
+  //     agent_i.pz += delta_correction_i.y;
+  //     agent_j.px += delta_correction_j.x;
+  //     agent_j.pz += delta_correction_j.y;
+  //
+  //     agent_i.grad[0] += delta_correction_i.x;
+  //     agent_i.grad[1] += delta_correction_i.y;
+  //     agent_j.grad[0] += delta_correction_j.x;
+  //     agent_j.grad[1] += delta_correction_j.y;
+  //
+  //   }
+  // }
+
+  function longRangeConstraint(agent_i, agent_j, agent_i_rad = RADIUS, agent_j_rad = RADIUS) {
     const agentCentroidDist = distance(agent_i.px, agent_i.pz,
         agent_j.px, agent_j.pz);
-    const radius_init = 2 * AGENTSIZE;
+    const radius_init = agent_i_rad + agent_j_rad // was AGENTSIZE
     const radius_sq_init = radius_init * radius_init;
     var radius_sq = radius_sq_init;
     const dv_i = 1.;  // 1./delta_t;
@@ -215,11 +324,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     }
     const v_x = (agent_i.px - agent_i.x) / timestep - (agent_j.px - agent_j.x) / timestep;
     const v_y = (agent_i.pz - agent_i.z) / timestep - (agent_j.pz - agent_j.z) / timestep;
-    const x0 = agent_i.x - agent_j.x;
-    const y0 = agent_i.z - agent_j.z;
+    let x0 = agent_i.x - agent_j.x;
+    let y0 = agent_i.z - agent_j.z;
     const v_sq = v_x * v_x + v_y * v_y;
-    const x0_sq = x0 * x0;
     const y0_sq = y0 * y0;
+    const x0_sq = x0 * x0;
     const x_sq = x0_sq + y0_sq;
     const a = v_sq;
     const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
@@ -228,7 +337,6 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     const d_sq = b_sq - a * c;
     const d = Math.sqrt(d_sq);
     const tao = (b - d) / a;
-    let taoCalc = tao;
     // if (agent_i.index % 2 !== 0 && agent_j.index % 2 !== 0){
     //
     //   C_TAO0 = 6;
@@ -238,17 +346,32 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     // }else {
     //   return;
     // }
-
     let lengthV;
-    if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
-      taoCalc=timestep* (1+  Math.floor(tao)/timestep);
+    if (d_sq > 0.0 && tao > 0 && tao < C_TAU_MAX) {
+      let v_minus_x_diff_theta = b / ( Math.sqrt(v_sq) *  Math.sqrt(x0_sq))
+      let v_diff_theta = Math.atan2(v_y, v_x); //v_y/v_x
+      let x_diff_theta = Math.atan2(y0, x0);//y0/x0
+
+      if(Math.abs(v_diff_theta-x_diff_theta) > 0.999*Math.PI &&
+          Math.abs(v_diff_theta-x_diff_theta) < 1.001*Math.PI
+      )
+      {
+        let r_xdiff = Math.sqrt(x_sq);
+        let x0_mod = r_xdiff * Math.cos(x_diff_theta)
+        let y0_mod = r_xdiff * Math.sin(x_diff_theta)
+        x0 = r_xdiff * Math.cos(x_diff_theta + Math.PI*0.001);
+        y0 = r_xdiff * Math.sin(x_diff_theta + Math.PI*0.001);
+        console.log("v-x angel " + (v_diff_theta-x_diff_theta) + " xangle " + x_diff_theta )
+        console.log("changed: x0,y0  (" + x0 + "," + y0 + ") new:" + x0_mod + " " +y0_mod);
+      }
       const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
       const tao_sq = c_tao * c_tao;
-      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * taoCalc) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      const grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      const grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
       const grad_x_j = -grad_x_i;
       const grad_y_j = -grad_y_i;
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+      //console.log("tao " + tao + " stiff " + stiff );
       const s = stiff * tao_sq / (agent_i.invmass * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + agent_j.invmass * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
       lengthV = Math.sqrt(s * agent_i.invmass * grad_x_i * s * agent_i.invmass * grad_x_i
@@ -258,11 +381,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
           s * agent_i.invmass * grad_y_i,
           MAX_DELTA);
 
-      delta_correction_j = clamp2D(s * agent_j.invmass * grad_x_j,
+      delta_correction_j =  clamp2D(s * agent_j.invmass * grad_x_j,
           s * agent_j.invmass * grad_y_j,
           MAX_DELTA);
-      agent_i.px += delta_correction_i.x;
-      agent_i.pz += delta_correction_i.y;
+      agent_i.px +=  delta_correction_i.x;
+      agent_i.pz += 44* delta_correction_i.y;
       agent_j.px += delta_correction_j.x;
       agent_j.pz += delta_correction_j.y;
 
@@ -271,12 +394,19 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       agent_j.grad[0] += delta_correction_j.x;
       agent_j.grad[1] += delta_correction_j.y;
 
+      // for utilities
+      agent_i.grad.x += grad_x_i;
+      agent_i.grad.z += grad_y_i;
+      agent_j.grad.x += grad_x_j;
+      agent_j.grad.z += grad_y_j;
+
     }
   }
 
+
   let C_TAU_MAX = 20;
   // const C_MAX_ACCELERATION = 0.01;
-  let C_TAO0 = 25; //
+  let C_TAO0 = 20; //
   const C_LONG_RANGE_STIFF = 1.0;
 
   function clamp2D(vx,vy, maxValue) {
@@ -289,13 +419,125 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     return {"x":vx, "y":vy}
   }
 
+  function longRangeConstraintCapsuleV0(best_i, best_j,
+                                      p_best_i, p_best_j,
+                                      theta_i, theta_j,
+                                      agent_i, agent_j,
+                                      entity_i, entity_j,
+                                      i = -1, j = -1) {
+
+
+    const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
+
+    const radius_init = 2 * AGENTSIZE;
+    const radius_sq_init = radius_init * radius_init;
+    let radius_sq = radius_sq_init;
+    const dv_i = 1.;  // 1./delta_t;
+    let delta_correction_i = {"x":0, "y":0};
+    let delta_correction_j= {"x":0, "y":0};
+    if (agentCentroidDist < radius_init) {
+      radius_sq = (radius_init - agentCentroidDist) * (radius_init - agentCentroidDist);
+    }
+
+    let v_x = (p_best_i.x - best_i.x) / timestep - (p_best_j.x - best_j.x) / timestep;
+    let v_y = (p_best_i.z - best_i.z) / timestep - (p_best_j.z - best_j.z) / timestep;
+    let x0 = best_i.x - best_j.x;
+    let y0 = best_i.z - best_j.z;
+
+
+
+    const v_sq = v_x * v_x + v_y * v_y;
+    const x0_sq = x0 * x0;
+    const y0_sq = y0 * y0;
+    const x_sq = x0_sq + y0_sq;
+    const a = v_sq;
+    const b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this.
+    const b_sq = b * b;
+    const c = x_sq - radius_sq;
+    const d_sq = b_sq - a * c;
+    const d = Math.sqrt(d_sq);
+    const tao = (b - d) / a;
+    // console.log("ttc in long range paper: " + tao);
+
+
+    let dx = 0;
+    let dz = 0;
+
+    if(C_TAU_MAX <= tao < 5 + C_TAU_MAX ){
+
+    }
+
+
+
+    let grad_x_i;
+    let grad_y_i;
+    let grad_x_j;
+    let grad_y_j;
+    let s;
+
+    if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+      const c_tao = Math.exp(-tao * tao / C_TAO0);  //Math.abs(tao - C_TAO0);
+      const tao_sq = c_tao * c_tao;
+
+      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
+      grad_x_j = -grad_x_i;
+      grad_y_j = -grad_y_i;
+
+      // special case
+      console.log(i + "<==>" + j)
+
+
+
+
+      // if facing direction on the same line AND the best points are exactly facing with each other
+      // adding gradient value
+
+
+
+      const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
+      s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+      // console.log()
+
+
+      delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
+          s * 0.5 * grad_y_i,
+          MAX_DELTA);
+
+      delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
+          s * 0.5 * grad_y_j,
+          MAX_DELTA);
+
+      // console.log("Long Range active");
+
+    }else {
+      grad_x_i = 0;
+      grad_y_i = 0;
+      grad_x_j = 0;
+      grad_y_j = 0;
+      s=0;
+    }
+
+
+    // return tao;
+    return [
+      delta_correction_i,
+      delta_correction_j,
+      [grad_x_i, grad_y_i],
+      [grad_x_j, grad_y_j],
+      s
+    ];
+  }
+
 
   function longRangeConstraintCapsule(best_i, best_j,
                                       p_best_i, p_best_j,
                                       theta_i, theta_j,
                                       agent_i, agent_j,
                                       entity_i, entity_j,
-                                      i = -1, j = -1) {
+                                      i = -1, j = -1,
+                                      correctX = 0, correctZ = 0
+                                      ) {
 
 
     const agentCentroidDist = distance(p_best_i.x, p_best_i.z, p_best_j.x, p_best_j.z);
@@ -338,7 +580,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     let grad_y_j;
     let s;
 
+
     if (d_sq > 0.0 && Math.abs(a) > epsilon && tao > 0 && tao < C_TAU_MAX) {
+
+      customParams.status[i][j] = true
+      customParams.status[j][i] = true
 
       let v_diff_theta = Math.atan2(v_y, v_x); //v_y/v_x
       let x_diff_theta = Math.atan2(y0, x0);//y0/x0
@@ -355,12 +601,13 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
           console.log("v-x angel " + (v_diff_theta-x_diff_theta) + " xangle " + x_diff_theta )
           console.log("changed: x0,y0  (" + x0 + "," + y0 + ") new:" + x0_mod + " " +y0_mod);
       }
+
       taoCalc = (Math.floor(tao)/timestep) * timestep;
       const c_tao = Math.exp(-taoCalc * taoCalc / C_TAO0);  //Math.abs(tao - C_TAO0);
       const tao_sq = c_tao * c_tao;
 
       taoCalc+=timestep;
-      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+      grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * taoCalc) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d))) ;
       grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * taoCalc) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
       grad_x_j = -grad_x_i;
       grad_y_j = -grad_y_i;
@@ -374,13 +621,13 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       const stiff = C_LONG_RANGE_STIFF * Math.exp(-tao * tao / C_TAO0);    //changed
       s = stiff * tao_sq / (0.5 * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + 0.5 * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
-      delta_correction_i = clamp2D(s * 0.5 * grad_x_i,
-          s * 0.5 * grad_y_i,
+      delta_correction_i = clamp2D(s * 0.5 * grad_x_i + s * 0.5 * -correctX,
+          s * 0.5 * grad_y_i + s * 0.5 * -correctZ,
           MAX_DELTA);
 
-      delta_correction_j = clamp2D(s * 0.5 * grad_x_j,
-          s * 0.5 * grad_y_j,
-          MAX_DELTA);
+      delta_correction_j = clamp2D(s * 0.5 * grad_x_j + s * 0.5 * correctX,
+          s * 0.5 * grad_y_j + s * 0.5 * correctZ,
+          MAX_DELTA) ;
 
       // console.log("Long Range active");
 
@@ -554,56 +801,106 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     return [bestA, bestB, a, b]
   }
 
-  function dotProduct(vector1, vector2) {
-    let result = 0;
-    for (let i = 0; i < vector1.length; i++) {
-      result += vector1[i] * vector2[i];
-    }
-    return result;
+
+
+  function checkAgentAlignment(agentA, agentB){
+
+    let projectBaseB = ClosestPointOnLineSegment(agentA.base, agentA.tip, agentB.base);
+    let projectTipB = ClosestPointOnLineSegment(agentA.base, agentA.tip, agentB.tip);
+
+    // calculate distance difference case 1
+    let diff1 = projectBaseB.clone().sub(agentA.base)
+    let diff2 = projectTipB.clone().sub(agentA.tip)
+
+    // calculate distance difference case 2
+    let diff3 = projectTipB.clone().sub(agentA.base)
+    let diff4 = projectBaseB.clone().sub(agentA.tip)
+
+    // return (diff1.length() < 0.5 && diff2.length() < 0.5) || (diff3.length() < 0.5 && diff4.length() < 0.5);
+    return (diff1.length() < 0.1 && diff2.length() < 0.1) || (diff3.length() < 0.1 && diff4.length() < 0.1);
+
   }
 
-  function areCollinear(vector1, vector2) {
-    // Ensure vectors are of the same dimension
-    if (vector1.length !== vector2.length) {
-      return false;
-    }
 
-    // Find the ratio of the first non-zero pair of elements
-    let ratio;
-    for (let i = 0; i < vector1.length; i++) {
-      if (vector1[i] !== 0 && vector2[i] !== 0) {
-        ratio = vector1[i] / vector2[i];
-        break;
-      }
-    }
+  function findLargestAngleVectors(capsule1, capsule2) {
+    // capsule1 and capsule2 are objects with {tip: THREE.Vector3, base: THREE.Vector3}
+    // note that the capsule2 is the expanded capsule
 
-    // Check if all corresponding elements are in the same ratio
-    for (let i = 0; i < vector1.length; i++) {
-      // Handle division by zero cases
-      if (vector1[i] === 0 && vector2[i] !== 0 || vector1[i] !== 0 && vector2[i] === 0) {
-        return false;
-      }
+    // Calculate vectors between tips and bases
+    let tipToTip = capsule2.tip.clone().sub(capsule1.tip);
+    let baseToBase = capsule2.base.clone().sub(capsule1.base);
+    let tipToBase = capsule2.base.clone().sub(capsule1.tip);
+    let baseToTip = capsule2.tip.clone().sub(capsule1.base);
 
-      // Check the ratio
-      if (vector1[i] !== 0 && vector2[i] !== 0) {
-        if (vector1[i] / vector2[i] !== ratio) {
-          return false;
-        }
-      }
-    }
+    // Calculate angles between dir1 and other vectors
+    let angle1 = baseToBase.angleTo(tipToTip);
+    let angle2 = baseToBase.angleTo(tipToBase);
+    let angle3 = baseToBase.angleTo(baseToTip);
 
-    return true;
-  }
+    let angle4 = tipToTip.angleTo(tipToBase);
+    let angle5 = tipToTip.angleTo(baseToTip);
 
-  function signNoP(n){
-    if (n >= 0){
-      return 1;
+    let angle6 = tipToBase.angleTo(baseToTip);
+
+
+    // Identify the pair of vectors with the largest angle
+    let maxAngle = Math.max(angle1, angle2, angle3, angle4, angle5, angle6);
+    let vectorsWithLargestAngle;
+
+    if (maxAngle === angle1) {
+      vectorsWithLargestAngle = {vector1: baseToBase, vector2: tipToTip};
+    } else if (maxAngle === angle2) {
+      vectorsWithLargestAngle = {vector1: baseToBase, vector2: tipToBase};
+    } else if (maxAngle === angle3) {
+      vectorsWithLargestAngle = {vector1: baseToBase, vector2: baseToTip};
+    } else if (maxAngle === angle4) {
+      vectorsWithLargestAngle = {vector1: tipToTip, vector2: tipToBase};
+    }else if (maxAngle === angle5) {
+      vectorsWithLargestAngle = {vector1: tipToTip, vector2: baseToTip};
     }else {
-      return -1;
+      vectorsWithLargestAngle = {vector1: tipToBase, vector2: baseToTip};
     }
 
+    return vectorsWithLargestAngle;
   }
 
+  function formNewCapsules(xi, zi, xj, zj, rad_i = RADIUS, rad_j = RADIUS){
+    const iCoords = rotateLineSegment(
+        xi,
+        zi + agentLength + RADIUS,
+        xi,
+        zi - agentLength - RADIUS,
+        sceneEntities[i].agent.rotation.z
+    );
+
+    const jCoords = rotateLineSegment(
+        xj,
+        zj + agentLength + RADIUS,
+        xj,
+        zj - agentLength - RADIUS,
+        sceneEntities[j].agent.rotation.z
+    );
+
+
+    // Agent A
+    const a = {
+      tip: new THREE.Vector3(iCoords[0], 0, iCoords[1]),
+      base: new THREE.Vector3(iCoords[2], 0, iCoords[3]),
+      radius: RADIUS,
+      real_tip: null,
+      real_base: null
+    };
+    // Agent B
+    const b = {
+      tip: new THREE.Vector3(jCoords[0], 0, jCoords[1]),
+      base: new THREE.Vector3(jCoords[2], 0, jCoords[3]),
+      radius: RADIUS,
+      real_tip: null,
+      real_base: null
+    };
+
+    return [a, b]
+  }
 
 
 
@@ -624,7 +921,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
   let pbdIters = 0;
   let isColliding;
-  var agent_a,
+  let agent_a,
     agent_b,
     desDistance,
     i,
@@ -649,6 +946,9 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         sceneEntities[i].grad.dz = 0;
         sceneEntities[j].grad.dx = 0;
         sceneEntities[j].grad.dz = 0;
+
+        customParams.status[i][j] = false;
+        customParams.status[j][i] = false;
 
         j += 1;
       }
@@ -694,42 +994,67 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
 
         let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
+
+        let correctDirX = 0;
+        let correctDirZ = 0
+        // move best point to middle if they aligned
+        let alignmentFlag = checkAgentAlignment(agent_i, agent_j)
+        if(alignmentFlag){
+          if(alignmentFlag){
+            let [A, B] = formNewCapsules(
+                sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z,
+                RADIUS, 2*RADIUS
+            )
+            let boundVectors = findLargestAngleVectors(A, B);
+            // console.log(i + " ===> " +  j);
+            console.log(boundVectors);
+            correctDirX = boundVectors.vector1.clone().normalize().x;
+            correctDirZ = boundVectors.vector1.clone().normalize().z;
+
+          }
+        }
+
+
         let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
-        // // ttc in long range collision paper
 
+        // let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(
+        //     bestA, bestB,
+        //     p_bestA, p_bestB,
+        //     sceneEntities[i].agent.rotation.z, sceneEntities[j].agent.rotation.z,
+        //     agent_i, agent_j,
+        //     sceneEntities[i], sceneEntities[j],
+        //     i, j,
+        //     correctDirX, correctDirZ
+        // );
 
-        let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(
-            bestA, bestB,
-            p_bestA, p_bestB,
-            sceneEntities[i].agent.rotation.z, sceneEntities[j].agent.rotation.z,
-            agent_i, agent_j,
-            sceneEntities[i], sceneEntities[j],
-            i, j
-        );
-
+        // longRangeConstraint(sceneEntities[i], sceneEntities[j], agentLength + RADIUS, agentLength + RADIUS )
         sceneEntities[i].sphere = bestA;
         sceneEntities[j].sphere = bestB;
 
+        sceneEntities[i].px += 10 * correctDirX;
+        sceneEntities[i].pz += 10 * correctDirZ;
+        sceneEntities[j].px += 10 * -correctDirX;
+        sceneEntities[j].pz += 10 * -correctDirZ;
 
-        sceneEntities[i].px += delta_correction_i.x;
-        sceneEntities[i].pz += delta_correction_i.y;
-        sceneEntities[j].px += delta_correction_j.x;
-        sceneEntities[j].pz += delta_correction_j.y;
+        // sceneEntities[i].px += delta_correction_i.x;
+        // sceneEntities[i].pz += delta_correction_i.y;
+        // sceneEntities[j].px += delta_correction_j.x;
+        // sceneEntities[j].pz += delta_correction_j.y;
 
 
         // for utilities
-        sceneEntities[i].grad.x += grad_i[0];
-        sceneEntities[i].grad.z += grad_i[1];
-        sceneEntities[j].grad.x += grad_j[0];
-        sceneEntities[j].grad.z += grad_j[1];
-
-        sceneEntities[i].grad.s = s;
-        sceneEntities[j].grad.s = s;
-
-        sceneEntities[i].grad.dx += delta_correction_i.x;
-        sceneEntities[i].grad.dz += delta_correction_i.y;
-        sceneEntities[j].grad.dx += delta_correction_j.x;
-        sceneEntities[j].grad.dz += delta_correction_j.y;
+        // sceneEntities[i].grad.x += grad_i[0];
+        // sceneEntities[i].grad.z += grad_i[1];
+        // sceneEntities[j].grad.x += grad_j[0];
+        // sceneEntities[j].grad.z += grad_j[1];
+        //
+        // sceneEntities[i].grad.s = s;
+        // sceneEntities[j].grad.s = s;
+        //
+        // sceneEntities[i].grad.dx += delta_correction_i.x;
+        // sceneEntities[i].grad.dz += delta_correction_i.y;
+        // sceneEntities[j].grad.dx += delta_correction_j.x;
+        // sceneEntities[j].grad.dz += delta_correction_j.y;
 
         customParams.best[i][j] = [bestA, bestB]
         customParams.best[j][i] = [bestB, bestA]

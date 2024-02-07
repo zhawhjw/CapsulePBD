@@ -46,6 +46,7 @@ let zarrows = [];
 let parameters = {
     best:[],
     wallData: [],
+    status: [],
 }
 
 const WORLDUNIT = 1
@@ -1383,6 +1384,9 @@ function init() {
      // tryingScenario_Bilas_3_debug();
     // tryingScenario_Bilas_2p5();
 
+    // initialize the status
+    parameters.status = [...Array(agentData.length)].map(_=>Array(agentData.length).fill(false));
+
     let agentGeom, agentMaterial, agent;
     let spotLight, spotLightTarget;
     let agentPointGeom, agentPointMaterial, agentPoint;
@@ -1391,8 +1395,6 @@ function init() {
         //agentGeom = new THREE.CylinderGeometry(item.radius, 1, 4, 16);
         // agentGeom = new THREE.CapsuleGeometry(item.radius, 2 * item.radius, 4, 8);
         agentGeom = new THREE.SphereGeometry( item.radius, 32, 16 );
-
-
 
         if (index % 2 !== 0){
             agentMaterial = new THREE.MeshLambertMaterial({
@@ -1648,7 +1650,7 @@ function animate() {
         spotLights[member.index].target.position.z = member.z;
 
 
-        // visualizeXZMagnitude(member, index);
+        visualizeXZMagnitude(member, index);
         // visualizeMagnitude(member, index)
         // visualizeVelocity(member, index);
 
@@ -1671,12 +1673,12 @@ function visualizeXZMagnitude(member, index) {
 
         // console.log(member.grad);
         let direction = new THREE.Vector3(0, 1, 0);
-        if (member.grad.x !== 0) {
+        if (member.grad.x !== undefined) {
             direction = new THREE.Vector3(member.grad.x, 0, 0);
+            xarrows[index].setDirection(direction.normalize());
+            xarrows[index].setLength(Math.abs(member.grad.x).toFixed(1) * 10);
         }
 
-        xarrows[index].setDirection(direction.normalize());
-        xarrows[index].setLength(direction.length() * 10);
     }
 
     if (zarrows.length > 0) {
@@ -1687,12 +1689,18 @@ function visualizeXZMagnitude(member, index) {
 
         // console.log(member.grad);
         let direction = new THREE.Vector3(0, 1, 0);
-        if (member.grad.z !== 0) {
+        if (member.grad.z !== undefined) {
             direction = new THREE.Vector3(0, 0, member.grad.z);
+            zarrows[index].setDirection(direction.normalize());
+            zarrows[index].setLength(Math.abs(member.grad.z).toFixed(1) * 10);
+
+            if(member.grad.z.toFixed(1) > 10){
+                console.log("?")
+            }
+
         }
 
-        zarrows[index].setDirection(direction.normalize());
-        zarrows[index].setLength(direction.length() * 10);
+
     }
 
 }

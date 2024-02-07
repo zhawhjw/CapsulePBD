@@ -44,6 +44,7 @@ let zarrows = [];
 let parameters = {
     best:[],
     wallData: [],
+    status: [],
 }
 
 const WORLDUNIT = 1
@@ -985,12 +986,12 @@ function init() {
             1,
             RADIUS * 1.5,
             {
-                x: -30,
+                x: -20,
                 //x: 30,
                 z: -6 - 0.5,
             },
             {
-                x: 999,
+                x: 20,
                 z: -6 - 0.5,
             },
             0.8,
@@ -1003,11 +1004,11 @@ function init() {
             1,
             RADIUS * 1.5,
             {
-                x: 30,
+                x: 20,
                 z: -6 - 0.5,
             },
             {
-                x: -999,
+                x: -20,
                 z: -6 - 0.5,
             },
             0.8,
@@ -1521,6 +1522,9 @@ function init() {
   // tryingScenario_Bilas_3_debug();
   // tryingScenario_Bilas_2p5();
 
+    // initialize the status
+  parameters.status = [...Array(agentData.length)].map(_=>Array(agentData.length).fill(false));
+
   let agentGeom, agentMaterial, agent;
   let spotLight, spotLightTarget;
   let agentPointGeom, agentPointMaterial, agentPoint;
@@ -1738,6 +1742,7 @@ function animate() {
     member.agent.position.y = member.y;
     member.agent.position.z = member.z;
 
+    // need tp revise
     const dx = member.goal_x - member.x;
     const dz = member.goal_z - member.z;
     member.agent.rotation.z = Math.atan2(dz, dx);

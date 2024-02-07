@@ -286,7 +286,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
             agent_j.grad[0] += delta_correction_j.x;
             agent_j.grad[1] += delta_correction_j.y;
 
-        
+            // for utilities
+            agent_i.grad.x += grad_x_i;
+            agent_i.grad.z += grad_y_i;
+            agent_j.grad.x += grad_x_j;
+            agent_j.grad.z += grad_y_j;
 
         }
     }
@@ -452,6 +456,27 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         idx = 0;
 
     while (pbdIters < ITERNUM) {
+
+        // clean previous accumulated gradient
+        i = 0;
+        while (i < sceneEntities.length) {
+            j = i + 1;
+            while (j < sceneEntities.length) {
+
+                sceneEntities[i].grad.x = 0;
+                sceneEntities[i].grad.z = 0;
+                sceneEntities[j].grad.x = 0;
+                sceneEntities[j].grad.z = 0;
+
+                sceneEntities[i].grad.dx = 0;
+                sceneEntities[i].grad.dz = 0;
+                sceneEntities[j].grad.dx = 0;
+                sceneEntities[j].grad.dz = 0;
+
+                j += 1;
+            }
+            i += 1;
+        }
 
         // wall collision (based on short range)
         i=0;
