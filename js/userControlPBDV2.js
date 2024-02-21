@@ -884,6 +884,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
     // Agent A
     const a = {
+      center: new THREE.Vector3(xi, 0, zi),
       tip: new THREE.Vector3(iCoords[0], 0, iCoords[1]),
       base: new THREE.Vector3(iCoords[2], 0, iCoords[3]),
       radius: RADIUS,
@@ -892,6 +893,7 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     };
     // Agent B
     const b = {
+      center: new THREE.Vector3(xj, 0, zj),
       tip: new THREE.Vector3(jCoords[0], 0, jCoords[1]),
       base: new THREE.Vector3(jCoords[2], 0, jCoords[3]),
       radius: RADIUS,
@@ -900,6 +902,114 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     };
 
     return [a, b]
+  }
+
+  function projectPointOntoVector(point, vector) {
+    // Clone the vector to avoid mutating the original
+    let direction = vector.clone().normalize(); // Ensure the vector is a unit vector
+    let pointVector = point.clone(); // Clone to avoid mutating the original point
+
+    // Calculate the dot product between pointVector and direction
+    let dotProduct = pointVector.dot(direction);
+
+    // Calculate the projection of pointVector onto the direction vector
+    // proj = (dotProduct / direction.lengthSq()) * direction
+    return direction.multiplyScalar(dotProduct / direction.lengthSq()); // This is the projected point as a Vector3
+  }
+
+
+  function getBestBDPrime(base, tip, velocity){
+    let B_candidate1 =  base.clone().add(velocity.clone().multiplyScalar(RADIUS));
+    let B_candidate2 =  base.clone().sub(velocity.clone().multiplyScalar(RADIUS));
+
+    let T_candidate1 =  tip.clone().add(velocity.clone().multiplyScalar(RADIUS));
+    let T_candidate2 =  tip.clone().sub(velocity.clone().multiplyScalar(RADIUS));
+
+    let dist1 = B_candidate1.distanceTo(T_candidate1);
+    let dist2 = B_candidate1.distanceTo(T_candidate2);
+    let dist3 = B_candidate2.distanceTo(T_candidate1);
+    let dist4 = B_candidate2.distanceTo(T_candidate2);
+
+    let maxDist = Math.max(dist1, dist2, dist3, dist4);
+
+    if (maxDist === dist1){
+      return [B_candidate1, T_candidate1, maxDist]
+
+    }else if(maxDist === dist2){
+      return [B_candidate1, T_candidate2, maxDist]
+
+    }else if(maxDist === dist3){
+      return [B_candidate2, T_candidate1, maxDist]
+
+    }else {
+      return [B_candidate2, T_candidate2, maxDist]
+
+    }
+  }
+
+  function getPerpendicular2DVector(vec) {
+    // Given a vector {x, z}, returns a vector that is perpendicular to it
+    return new THREE.Vector3(-vec.z, 0, vec.x);
+  }
+
+  function checkVectorDirection(vectorA, vectorB) {
+    // Assuming vectorA and vectorB are instances of THREE.Vector3
+    const dotProduct = vectorA.dot(vectorB);
+
+    if (dotProduct > 0) {
+      return 1;
+    } else if (dotProduct < 0) {
+      return -1;
+    } else {
+      return 0;
+    }
+  }
+
+  function determineHeadTail(velPrime, basePrime, tipPrime, centerPrime, another_centerPrime){
+
+    let head, tail;
+
+    let flag_i = checkVectorDirection(velPrime, basePrime.clone().sub(centerPrime))
+    if(flag_i === 1){
+      head = basePrime;
+      tail = tipPrime;
+    }else if(flag_i === -1){
+      head = tipPrime;
+      tail = basePrime;
+    }else {
+
+      let dist1 = basePrime.distanceTo(another_centerPrime);
+      let dist2 = tipPrime.distanceTo(another_centerPrime);
+
+      let minDist = Math.min(dist1, dist2);
+      if(minDist === dist1){
+        head = basePrime;
+        tail = tipPrime;
+
+      }else {
+        head = tipPrime;
+        tail = basePrime;
+
+      }
+    }
+
+    return [head, tail];
+  }
+
+  function timeToCollideVector3(P1, V1, P2, V2) {
+    // Assuming linear motion and choosing one component to represent the line direction, e.g., the x-component
+    let deltaP = P2.x - P1.x; // Difference in positions
+    let deltaV = V1.x - V2.x; // Difference in velocities
+
+    // Check if velocities are equal in the chosen direction
+    if (deltaV === 0) {
+      // If starting at the same position, they collide immediately, otherwise never
+      return deltaP === 0 ? 0 : null;
+    } else {
+      // Calculate time to collision based on the chosen component
+      // If time is negative, they are moving apart or have already passed each other
+      return deltaP / deltaV;
+    }
   }
 
 
@@ -988,71 +1098,75 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
       j = i + 1;
       while (j < sceneEntities.length) {
 
-        // console.log(i + " : " + sceneEntities[i].agent.rotation.z);
-        // console.log(j + " : " + sceneEntities[j].agent.rotation.z);
-        // console.log()
+        // get capsule shape
+        let [capsule_i, capsule_j] = formNewCapsules(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
 
-        let correctDirX = 0;
-        let correctDirZ = 0
-        let [bestA, bestB, agent_i, agent_j] = getBestPoint(sceneEntities[i].x, sceneEntities[i].z, sceneEntities[j].x, sceneEntities[j].z);
-        let [p_bestA, p_bestB, p_agent_i,p_agent_j] = getBestPoint(sceneEntities[i].px, sceneEntities[i].pz, sceneEntities[j].px, sceneEntities[j].pz);
+        let vi = new THREE.Vector3(sceneEntities[i].vx, 0, sceneEntities[i].vz);
+        let vj = new THREE.Vector3(sceneEntities[j].vx, 0, sceneEntities[j].vz);
 
-        let [delta_correction_i, delta_correction_j, grad_i, grad_j, s] = longRangeConstraintCapsule(
-            bestA, bestB,
-            p_bestA, p_bestB,
-            sceneEntities[i].agent.rotation.z, sceneEntities[j].agent.rotation.z,
-            agent_i, agent_j,
-            sceneEntities[i], sceneEntities[j],
-            i, j,
-            correctDirX, correctDirZ
-        );
+        // we need to use these 4 axes to find if they are separate or not
+        let axes = [vi, vj, getPerpendicular2DVector(vi), getPerpendicular2DVector(vj)];
+        let ttc = [];
+        for (let k = 0; k<axes.length;k++){
+          // check current axis
+          let axis = axes[k];
+          // projected tip and base of j on to velocity of i
+          let base_j_prime =  projectPointOntoVector(capsule_j.base, axis)
+          let tip_j_prime =  projectPointOntoVector(capsule_j.tip, axis)
+          let center_j_prime = projectPointOntoVector(capsule_j.center, axis)
+          let [base_j_, tip_j_, dist_j] = getBestBDPrime(base_j_prime, tip_j_prime, axis);
+
+          // // projected tip and base of i on to velocity of j
+          let base_i_prime =  projectPointOntoVector(capsule_i.base, axis)
+          let tip_i_prime =  projectPointOntoVector(capsule_i.tip, axis)
+          let center_i_prime = projectPointOntoVector(capsule_i.center, axis)
+          let [base_i_, tip_i_, dist_i] = getBestBDPrime(base_i_prime, tip_i_prime, axis);
+
+          let pVel_i, pVel_j;
+
+          pVel_i = axis.clone().multiplyScalar(vi.dot(axis) / axis.lengthSq());
+          pVel_j = axis.clone().multiplyScalar(vj.dot(axis) / axis.lengthSq());
+
+
+          let [head_i, tail_i] = determineHeadTail(pVel_i, base_i_, tip_i_, center_i_prime, center_j_prime);
+          let [head_j, tail_j] = determineHeadTail(pVel_j, base_j_, tip_j_, center_j_prime, center_i_prime);
+
+          let t = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j)
+          ttc.push(t);
+
+        }
+
+        console.log(ttc);
+
+
 
         // longRangeConstraint(sceneEntities[i], sceneEntities[j], agentLength + RADIUS, agentLength + RADIUS )
-        sceneEntities[i].sphere = bestA;
-        sceneEntities[j].sphere = bestB;
-
-        sceneEntities[i].px += delta_correction_i.x;
-        sceneEntities[i].pz += delta_correction_i.y;
-        sceneEntities[j].px += delta_correction_j.x;
-        sceneEntities[j].pz += delta_correction_j.y;
-
-
-        // for utilities
-        sceneEntities[i].grad.x += grad_i[0];
-        sceneEntities[i].grad.z += grad_i[1];
-        sceneEntities[j].grad.x += grad_j[0];
-        sceneEntities[j].grad.z += grad_j[1];
-
-        sceneEntities[i].grad.s = s;
-        sceneEntities[j].grad.s = s;
-
-        sceneEntities[i].grad.dx += delta_correction_i.x;
-        sceneEntities[i].grad.dz += delta_correction_i.y;
-        sceneEntities[j].grad.dx += delta_correction_j.x;
-        sceneEntities[j].grad.dz += delta_correction_j.y;
-
-        customParams.best[i][j] = [bestA, bestB]
-        customParams.best[j][i] = [bestB, bestA]
-
-        // short range collision
-        // didn't correct position in real time
-        // let penetration_normal = bestA.clone().sub(bestB);
-        // const len = penetration_normal.length();
-        // penetration_normal.divideScalar(len); // normalize
-        // const penetration_depth = sceneEntities[i].radius + sceneEntities[j].radius - len;
-        // const intersects = penetration_depth > 0;
-        // if (intersects) {
-        //   sceneEntities[i].colliding = true;
-        //   sceneEntities[j].colliding = true;
+        // sceneEntities[i].sphere = bestA;
+        // sceneEntities[j].sphere = bestB;
         //
-        //   sceneEntities[i].px += penetration_normal.x * 0.5 * penetration_depth;
-        //   sceneEntities[i].pz += penetration_normal.y * 0.5 * penetration_depth;
+        // sceneEntities[i].px += delta_correction_i.x;
+        // sceneEntities[i].pz += delta_correction_i.y;
+        // sceneEntities[j].px += delta_correction_j.x;
+        // sceneEntities[j].pz += delta_correction_j.y;
         //
-        //   sceneEntities[j].px +=
-        //       -1 * penetration_normal.x * 0.5 * penetration_depth;
-        //   sceneEntities[j].pz +=
-        //       -1 * penetration_normal.y * 0.5 * penetration_depth;
-        // }
+        //
+        // // for utilities
+        // sceneEntities[i].grad.x += grad_i[0];
+        // sceneEntities[i].grad.z += grad_i[1];
+        // sceneEntities[j].grad.x += grad_j[0];
+        // sceneEntities[j].grad.z += grad_j[1];
+        //
+        // sceneEntities[i].grad.s = s;
+        // sceneEntities[j].grad.s = s;
+        //
+        // sceneEntities[i].grad.dx += delta_correction_i.x;
+        // sceneEntities[i].grad.dz += delta_correction_i.y;
+        // sceneEntities[j].grad.dx += delta_correction_j.x;
+        // sceneEntities[j].grad.dz += delta_correction_j.y;
+        //
+        // customParams.best[i][j] = [bestA, bestB]
+        // customParams.best[j][i] = [bestB, bestA]
+
 
         j += 1;
       }
@@ -1069,9 +1183,9 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
   sceneEntities.forEach(function (item) {
 
-    // const dx = item.px - item.x;
-    // const dz = item.pz - item.z;
-    // item.agent.rotation.z = Math.atan2(dz, dx);
+    const dx = item.px - item.x;
+    const dz = item.pz - item.z;
+    item.agent.rotation.z = Math.atan2(dz, dx);
 
     item.vx = (item.px - item.x) / timestep;
     item.vz = (item.pz - item.z) / timestep;

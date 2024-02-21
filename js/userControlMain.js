@@ -1589,20 +1589,20 @@ function init() {
     // scene.add( arrowHelper );
     arrows.push(arrowHelper);
 
-      // arrow for x and z
-      let xdir = new THREE.Vector3( 0, 1, 0 );
-      let xorigin = agent.position;
-      let xhex = 0xffff00;
-      let xarrowHelper = new THREE.ArrowHelper( xdir, xorigin, 1, xhex );
-      scene.add( xarrowHelper );
-      xarrows.push(xarrowHelper);
+    // arrow for x and z
+    let xdir = new THREE.Vector3( 0, 1, 0 );
+    let xorigin = agent.position;
+    let xhex = 0xffff00;
+    let xarrowHelper = new THREE.ArrowHelper( xdir, xorigin, 1, xhex );
+    scene.add( xarrowHelper );
+    xarrows.push(xarrowHelper);
 
-      let zdir = new THREE.Vector3( 0, 1, 0 );
-      let zorigin = agent.position;
-      let zhex = 0x00ffff;
-      let zarrowHelper = new THREE.ArrowHelper( zdir, zorigin, 1, zhex );
-      scene.add( zarrowHelper );
-      zarrows.push(zarrowHelper);
+    let zdir = new THREE.Vector3( 0, 1, 0 );
+    let zorigin = agent.position;
+    let zhex = 0x00ffff;
+    let zarrowHelper = new THREE.ArrowHelper( zdir, zorigin, 1, zhex );
+    scene.add( zarrowHelper );
+    zarrows.push(zarrowHelper);
 
     // velocity  indicator
     let g_dir = new THREE.Vector3( 1, 0, 0 );
@@ -1743,9 +1743,9 @@ function animate() {
     member.agent.position.z = member.z;
 
     // need tp revise
-    const dx = member.goal_x - member.x;
-    const dz = member.goal_z - member.z;
-    member.agent.rotation.z = Math.atan2(dz, dx);
+    // const dx = member.goal_x - member.x;
+    // const dz = member.goal_z - member.z;
+    // member.agent.rotation.z = Math.atan2(dz, dx);
 
     member.agent.material = redAgentMaterial;
 
@@ -1755,9 +1755,9 @@ function animate() {
     member.colliding = false;
 
 
-    member.agentSphere.position.x = member.sphere.x;
-    member.agentSphere.position.y = member.y
-    member.agentSphere.position.z = member.sphere.z;
+    // member.agentSphere.position.x = member.sphere.x;
+    // member.agentSphere.position.y = member.y
+    // member.agentSphere.position.z = member.sphere.z;
 
     if (selected.length >0) {
 
