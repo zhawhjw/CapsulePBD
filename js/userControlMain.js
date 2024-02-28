@@ -988,11 +988,11 @@ function init() {
             {
                 x: -20,
                 //x: 30,
-                z: -6 - 0.5,
+                z: -9,
             },
             {
                 x: 20,
-                z: -6 - 0.5,
+                z: -9,
             },
             0.8,
             "X"
@@ -1005,11 +1005,11 @@ function init() {
             RADIUS * 1.5,
             {
                 x: 20,
-                z: -6 - 0.5,
+                z: -6,
             },
             {
                 x: -20,
-                z: -6 - 0.5,
+                z: -6 ,
             },
             0.8,
             "X"
@@ -1489,7 +1489,9 @@ function init() {
           's':0,
           'dx':0,
           'dz':0
-        }
+        },
+          back_goal_x: goalPos.x + dx * i,
+          back_goal_z: goalPos.z + dz * i,
       });
       i += 1;
     }
@@ -1743,9 +1745,9 @@ function animate() {
     member.agent.position.z = member.z;
 
     // need tp revise
-    // const dx = member.goal_x - member.x;
-    // const dz = member.goal_z - member.z;
-    // member.agent.rotation.z = Math.atan2(dz, dx);
+    const dx = member.goal_x - member.x;
+    const dz = member.goal_z - member.z;
+    member.agent.rotation.z = Math.atan2(dz, dx);
 
     member.agent.material = redAgentMaterial;
 

@@ -1131,12 +1131,106 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
           let [head_i, tail_i] = determineHeadTail(pVel_i, base_i_, tip_i_, center_i_prime, center_j_prime);
           let [head_j, tail_j] = determineHeadTail(pVel_j, base_j_, tip_j_, center_j_prime, center_i_prime);
 
-          let t = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j)
+          //verify the velocity direction condition
+          let flag = checkVectorDirection(pVel_i, pVel_j)
+
+          let t;
+          if(flag === -1){
+            t = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j)
+          }else if(flag === 1){
+
+            let dir1 = tail_j.clone().sub(head_i);
+            let dir2 = tail_i.clone().sub(head_j);
+
+            let dir_flag1 = checkVectorDirection(dir1, pVel_i);
+            let dir_flag2 = checkVectorDirection(dir2, pVel_i)
+
+            if(dir_flag1 === 1){
+              t = timeToCollideVector3(head_i, pVel_i, tail_j, pVel_j)
+
+            }else if(dir_flag2 === 1){
+              t = timeToCollideVector3(head_j, pVel_i, tail_i, pVel_j)
+
+            }else {
+              t = null;
+              console.error("Same Walking Direction but velocity is different from the axis direction")
+            }
+
+          }else {
+
+            if(pVel_i.length() < 0.001){
+              let t1 = timeToCollideVector3(head_j, pVel_j, head_i, pVel_i);
+              let t2 = timeToCollideVector3(head_j, pVel_j, tail_i, pVel_i);
+
+              if(t1<t2){
+                t= t1;
+              }else {
+                t = t2;
+              }
+
+            }else if(pVel_j.length() < 0.001){
+              let t1 = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j);
+              let t2 = timeToCollideVector3(head_i, pVel_i, tail_j, pVel_j);
+
+              if(t1<t2){
+                t= t1;
+              }else {
+                t = t2;
+              }
+            }else {
+              t= null;
+              console.error("Perpendicular Walking Direction but one projected velocity is not zero")
+
+            }
+
+          }
+
           ttc.push(t);
 
         }
 
-        console.log(ttc);
+        // console.log(ttc);
+
+        let expected_ttc = Math.max(...ttc)
+        console.log(expected_ttc);
+
+
+        // let final_ttc = Math.floor(expected_ttc) + timestep
+        let final_ttc = expected_ttc
+
+        let final_i_x =  sceneEntities[i].x + final_ttc * sceneEntities[i].vx;
+        let final_i_z =  sceneEntities[i].z + final_ttc * sceneEntities[i].vz;
+
+        let final_j_x =  sceneEntities[j].x + final_ttc * sceneEntities[j].vx;
+        let final_j_z =  sceneEntities[j].z + final_ttc * sceneEntities[j].vz;
+
+        let [bestA, bestB, agent_i, agent_j] = getBestPoint(final_i_x, final_i_z, final_j_x, final_j_z);
+
+        // short range collision
+        // didn't correct position in real time
+        let delta_i_x, delta_i_z, delta_j_x, delta_j_z;
+
+        let penetration_normal = bestA.clone().sub(bestB);
+        const len = penetration_normal.length();
+        penetration_normal.divideScalar(len); // normalize
+        const penetration_depth = sceneEntities[i].radius + sceneEntities[j].radius - len;
+        const intersects = penetration_depth > 0;
+
+        if (intersects) {
+          delta_i_x = penetration_normal.x * 0.5 * penetration_depth;
+          delta_i_z = penetration_normal.z * 0.5 * penetration_depth;
+
+          delta_j_x = -1 * penetration_normal.x * 0.5 * penetration_depth;
+          delta_j_z =  -1 * penetration_normal.z * 0.5 * penetration_depth;
+
+        }else {
+          delta_i_x = 0;
+          delta_i_z = 0;
+
+          delta_j_x = 0;
+          delta_j_z = 0;
+
+        }
 
 
 
@@ -1166,6 +1260,50 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         //
         // customParams.best[i][j] = [bestA, bestB]
         // customParams.best[j][i] = [bestB, bestA]
+
+        // navigation
+        let expect_i_x = final_i_x + delta_i_x;
+        let expect_i_z =  final_i_z + delta_i_z * 50;
+
+        let expect_j_x =  final_j_x + delta_j_x;
+        let expect_j_z =  final_j_z + delta_j_z * 50;
+
+        let expect_i = new THREE.Vector3(expect_i_x, 0, expect_i_z);
+        let expect_j = new THREE.Vector3(expect_j_x, 0, expect_j_z);
+
+        let goal_i = new THREE.Vector3(sceneEntities[i].back_goal_x, 0, sceneEntities[i].back_goal_z);
+        let goal_j = new THREE.Vector3(sceneEntities[j].back_goal_x, 0, sceneEntities[j].back_goal_z);
+
+        let current_i = new THREE.Vector3(sceneEntities[i].x, 0, sceneEntities[i].z);
+        let current_j = new THREE.Vector3(sceneEntities[j].x, 0, sceneEntities[j].z);
+
+        let gi = goal_i.clone().sub(current_i);
+        let gj = goal_j.clone().sub(current_j);
+
+        let ci = expect_i.clone().sub(current_i);
+        let cj = expect_j.clone().sub(current_j);
+
+        let flag4 = checkVectorDirection(gi, ci)
+        let flag5 = checkVectorDirection(gj, cj)
+
+        if(flag4 === 1){
+          sceneEntities[i].goal_x = expect_i.x;
+          sceneEntities[i].goal_z = expect_i.z;
+
+        }else {
+          sceneEntities[i].goal_x = sceneEntities[i].back_goal_x;
+          sceneEntities[i].goal_z = sceneEntities[i].back_goal_z;
+        }
+
+
+        if(flag5 === 1){
+          sceneEntities[j].goal_x = expect_j.x;
+          sceneEntities[j].goal_z = expect_j.z;
+
+        }else {
+          sceneEntities[j].goal_x = sceneEntities[j].back_goal_x;
+          sceneEntities[j].goal_z = sceneEntities[j].back_goal_z;
+        }
 
 
         j += 1;

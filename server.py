@@ -4,7 +4,7 @@
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 import socketserver
 
-PORT = 1337
+PORT = 1338
 
 Handler = SimpleHTTPRequestHandler
 Handler.extensions_map.update({
