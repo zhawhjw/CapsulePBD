@@ -584,14 +584,14 @@ function init() {
   // Time: 0.06 seconds of the video
 
   function tryingScenario_Bilas_1() {
-    for (let i = 0; i < 5; i++) {
-      for (let j = 0; j < 3; j++) {
+    for (let i = 0; i < 1; i++) {
+      for (let j = 0; j < 2; j++) {
         addColumnAgentGroup(
             agentData,
             1,
             RADIUS * 1.5,
             {
-              x: 30 - i * 6,
+              x: 5 - i * 6,
               //x: 30,
               z: -10 + j * 6,
             },
@@ -984,7 +984,7 @@ function init() {
         addColumnAgentGroup(
             agentData,
             1,
-            RADIUS * 1.5,
+            0,
             {
                 x: -20,
                 //x: 30,
@@ -1002,7 +1002,7 @@ function init() {
         addColumnAgentGroup(
             agentData,
             1,
-            RADIUS * 1.5,
+            0,
             {
                 x: 20,
                 z: -6,
@@ -1492,6 +1492,7 @@ function init() {
         },
           back_goal_x: goalPos.x + dx * i,
           back_goal_z: goalPos.z + dz * i,
+          facing: new THREE.Vector3(goalPos.x + dx * i - startPos.x + dx * i,0,goalPos.z + dz * i - startPos.z + dz * i),
       });
       i += 1;
     }
@@ -1514,10 +1515,10 @@ function init() {
   // testCrossScenario();
   // circleScenario();
 
-  // tryingScenario_Bilas_1();
+  tryingScenario_Bilas_1();
   // tryingScenario_Bilas_1_debug();
   // tryingScenario_Bilas_1_diagno_debug();
-  tryingScenario_Bilas_1_deviate_debug();
+  // tryingScenario_Bilas_1_deviate_debug();
   // tryingScenario_sphere_Bilas_1_debug();
   // tryingScenario_Bilas_2();
   // tryingScenario_Bilas_3();
@@ -1588,7 +1589,7 @@ function init() {
     let hex = 0xffff00;
 
     let arrowHelper = new THREE.ArrowHelper( dir, origin, length, hex );
-    // scene.add( arrowHelper );
+    scene.add( arrowHelper );
     arrows.push(arrowHelper);
 
     // arrow for x and z
@@ -1623,6 +1624,8 @@ function init() {
     //adding spotlight code
     spotLight = new THREE.SpotLight(0xffffff);
     spotLight.position.set(item.x, item.y + 6, item.z);
+    // console.log(spotLight.position);
+
     spotLight.shadow.mapSize.width = 1024;
     spotLight.shadow.mapSize.height = 1024;
     spotLight.shadow.camera.near = 500;
@@ -1632,13 +1635,21 @@ function init() {
     spotLight.angle = Math.PI / 8;
     spotLightTarget = new THREE.Object3D();
     scene.add(spotLightTarget);
+    // console.log(spotLightTarget.position);
     spotLight.target = spotLightTarget;
     scene.add(spotLight);
     spotLights[item.index] = spotLight;
+
+    // let facing = spotLight.position.clone().sub(agent.position);
+    // let facing = spotLightTarget.position.clone().sub(spotLight.position);
+    // facing.y = 0;
+
     // ----------------
     item.agent = agent;
     item.agentSphere = agentSphereMesh;
     item.agentPoint = agentPoint;
+    // item.facing = facing;
+    console.log(item.facing)
     pickableObjects.push(agent);
     // pickableObjects.push(agent);
 
@@ -1747,7 +1758,7 @@ function animate() {
     // need tp revise
     const dx = member.goal_x - member.x;
     const dz = member.goal_z - member.z;
-    member.agent.rotation.z = Math.atan2(dz, dx);
+    // member.agent.rotation.z = Math.atan2(dz, dx);
 
     member.agent.material = redAgentMaterial;
 
@@ -1803,7 +1814,7 @@ function animate() {
     visualizeXZMagnitude(member, index);
     // visualizeMagnitude(member, index)
     // visualizeVelocity(member, index);
-
+    visualizeFacing(member, index)
 
   });
   renderer.render(scene, camera);
@@ -1886,6 +1897,24 @@ function visualizeVelocity(member, index){
 
         g_arrows[index].setDirection(direction.normalize());
         g_arrows[index].setLength(direction.length()*10);
+    }
+}
+
+function visualizeFacing(member, index){
+    if (arrows.length>0){
+
+        arrows[index].position.x = member.x;
+        arrows[index].position.y = member.y;
+        arrows[index].position.z = member.z;
+
+        // console.log(member.grad);
+        // let direction = new THREE.Vector3(0, 1, 0);
+        // if (member.grad.x !== 0 && member.grad.z !==0){
+        //     direction = new THREE.Vector3(member.grad.x, 0, member.grad.z);
+        // }
+
+        arrows[index].setDirection(member.facing.normalize());
+        arrows[index].setLength(member.facing.length()*10);
     }
 }
 

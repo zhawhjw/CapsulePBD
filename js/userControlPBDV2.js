@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+
+
+
 export function distance(x1, y1, x2, y2) {
   return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
@@ -226,6 +229,28 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         const dir_z = (agent_i.goal_z - agent_i.z) / distToGoal;
         agent_i.vx = agent_i.v_pref * dir_x;
         agent_i.vz = agent_i.v_pref * dir_z;
+      }
+      agent_i.vx = 0.9999 * agent_i.vx;
+      agent_i.vz = 0.9999 * agent_i.vz;
+    });
+  }
+
+  function agentVelocityPlannerV2() {
+    sceneEntities.forEach(function (agent_i) {
+      const distToGoal = distance(
+          agent_i.x,
+          agent_i.z,
+          agent_i.goal_x,
+          agent_i.goal_z
+      );
+      if (distToGoal > 0.1) {
+        const dir_x = (agent_i.goal_x - agent_i.x) / distToGoal;
+        const dir_z = (agent_i.goal_z - agent_i.z) / distToGoal;
+        agent_i.vx = agent_i.v_pref * dir_x;
+        agent_i.vz = agent_i.v_pref * dir_z;
+      }else {
+        agent_i.vx = 0;
+        agent_i.vz = 0;
       }
       agent_i.vx = 0.9999 * agent_i.vx;
       agent_i.vz = 0.9999 * agent_i.vz;
@@ -723,17 +748,17 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
     const iCoords = rotateLineSegment(
         xi,
-        zi + agentLength + RADIUS,
+        zi + agentLength,
         xi,
-        zi - agentLength - RADIUS,
+        zi - agentLength,
         sceneEntities[i].agent.rotation.z
     );
 
     const jCoords = rotateLineSegment(
         xj,
-        zj + agentLength + RADIUS,
+        zj + agentLength,
         xj,
-        zj - agentLength - RADIUS,
+        zj - agentLength,
         sceneEntities[j].agent.rotation.z
     );
 
@@ -867,17 +892,17 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
   function formNewCapsules(xi, zi, xj, zj, rad_i = RADIUS, rad_j = RADIUS){
     const iCoords = rotateLineSegment(
         xi,
-        zi + agentLength + RADIUS,
+        zi + agentLength,
         xi,
-        zi - agentLength - RADIUS,
+        zi - agentLength,
         sceneEntities[i].agent.rotation.z
     );
 
     const jCoords = rotateLineSegment(
         xj,
-        zj + agentLength + RADIUS,
+        zj + agentLength,
         xj,
-        zj - agentLength - RADIUS,
+        zj - agentLength,
         sceneEntities[j].agent.rotation.z
     );
 
@@ -918,12 +943,12 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
   }
 
 
-  function getBestBDPrime(base, tip, velocity){
-    let B_candidate1 =  base.clone().add(velocity.clone().multiplyScalar(RADIUS));
-    let B_candidate2 =  base.clone().sub(velocity.clone().multiplyScalar(RADIUS));
+  function getBestBDPrime(base, tip, axis){
+    let B_candidate1 =  base.clone().add(axis.clone().normalize().multiplyScalar(RADIUS));
+    let B_candidate2 =  base.clone().sub(axis.clone().normalize().multiplyScalar(RADIUS));
 
-    let T_candidate1 =  tip.clone().add(velocity.clone().multiplyScalar(RADIUS));
-    let T_candidate2 =  tip.clone().sub(velocity.clone().multiplyScalar(RADIUS));
+    let T_candidate1 =  tip.clone().add(axis.clone().normalize().multiplyScalar(RADIUS));
+    let T_candidate2 =  tip.clone().sub(axis.clone().normalize().multiplyScalar(RADIUS));
 
     let dist1 = B_candidate1.distanceTo(T_candidate1);
     let dist2 = B_candidate1.distanceTo(T_candidate2);
@@ -952,17 +977,71 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     return new THREE.Vector3(-vec.z, 0, vec.x);
   }
 
-  function checkVectorDirection(vectorA, vectorB) {
+  function checkVectorDirection(vectorA, vectorB, threshold = 1) {
     // Assuming vectorA and vectorB are instances of THREE.Vector3
-    const dotProduct = vectorA.dot(vectorB);
 
-    if (dotProduct > 0) {
-      return 1;
-    } else if (dotProduct < 0) {
-      return -1;
-    } else {
+
+    // values ranged from -180 ~ 180
+    let angleBetween = vectorA.angleTo(vectorB) / Math.PI * 180;
+    let thresholdAngle1 = Math.abs(angleBetween) + threshold;
+    let thresholdAngle2 = Math.abs(angleBetween) - threshold;
+
+
+    if(thresholdAngle2 < 90 && 90 < thresholdAngle1 ){
+      // perpendicular
       return 0;
+
+    }else if(angleBetween <= 90 - threshold){
+      // about similar direction
+      return 1;
+
+    }else if (angleBetween >= 90 + threshold){
+      // about opposite direction
+      return -1;
+
+    }else {
+      throw new Error("Undetected direction Error");
     }
+
+    // let dotProduct = vectorA.dot(vectorB);
+
+    // if(Math.abs(dotProduct)<0.001){
+    //   dotProduct = 0;
+    // }
+
+    // if (dotProduct > 0) {
+    //   return 1;
+    // } else if (dotProduct < 0) {
+    //   return -1;
+    // } else {
+    //   return 0;
+    // }
+  }
+
+  function positionCheck(point, endA, endB){
+
+    let dir1 = endA.clone().sub(point);
+    let dir2 = endB.clone().sub(point);
+
+    let flag = checkVectorDirection(dir1, dir2);
+
+
+
+    if(flag === 1){
+      // point outside of line segment made by endA and endB
+      return 1;
+    }else if(flag === -1){
+      // point inside the line segment made by endA and endB
+      return 0
+    }else {
+
+      if(dir1.length() === 0 || dir2.length() === 0){
+        return 0;
+      }
+
+      throw new Error('Projected points should not have perpendicular case!');
+    }
+
   }
 
   function determineHeadTail(velPrime, basePrime, tipPrime, centerPrime, another_centerPrime){
@@ -996,19 +1075,80 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     return [head, tail];
   }
 
-  function timeToCollideVector3(P1, V1, P2, V2) {
+  function timeToCollideVector3(P1, V1, P2, V2, positionCondition = null) {
     // Assuming linear motion and choosing one component to represent the line direction, e.g., the x-component
-    let deltaP = P2.x - P1.x; // Difference in positions
-    let deltaV = V1.x - V2.x; // Difference in velocities
+    let deltaP = P2.clone().sub(P1).length(); // Difference in positions
+    let deltaV = V2.clone().sub(V1).length(); // Difference in velocities
 
     // Check if velocities are equal in the chosen direction
     if (deltaV === 0) {
+
       // If starting at the same position, they collide immediately, otherwise never
-      return deltaP === 0 ? 0 : null;
+      if(deltaP === 0){
+        return 0;
+      }else{
+
+        if(positionCondition === 0){
+          return 0;
+        }else{
+          return null;
+        }
+
+      }
+
+      // return deltaP === 0 ? 0 : null;
     } else {
       // Calculate time to collision based on the chosen component
       // If time is negative, they are moving apart or have already passed each other
+
+
       return deltaP / deltaV;
+    }
+  }
+
+  function timeToCollideVector3V2(P1, V1, P2, V2, positionCondition = null) {
+    // Assuming linear motion and choosing one component to represent the line direction, e.g., the x-component
+    let deltaX = P2.x - P1.x; // Difference in positions
+    let deltaZ = P2.z - P1.z;
+
+    let deltaVX = V2.x - V1.x; // Difference in velocity
+    let deltaVZ = V2.z - V1.z;
+
+    // Check if velocities are equal in the chosen direction
+    if(deltaVX ===0 && deltaVZ === 0){
+      if(deltaX === 0 && deltaZ === 0){
+        return 0;
+      }
+
+      return null;
+    }
+
+    let t;
+    if(deltaVX !== 0){
+      t = -deltaX / deltaVX;
+    }else {
+      t = -deltaZ / deltaVZ;
+    }
+
+    return t;
+  }
+
+  function determineLeadingSegment(A1, B1, A2, B2, direction) {
+    // Calculate the mean position vector of each segment
+    const meanPositionSegment1 = A1.clone().add(B1).multiplyScalar(0.5);
+    const meanPositionSegment2 = A2.clone().add(B2).multiplyScalar(0.5);
+
+    // Calculate the dot product of the mean position vectors with the direction vector
+    const dotProductSegment1 = meanPositionSegment1.dot(direction);
+    const dotProductSegment2 = meanPositionSegment2.dot(direction);
+
+    // Determine which segment is ahead based on the dot products
+    if (dotProductSegment1 > dotProductSegment2) {
+      return 1;
+    } else if (dotProductSegment1 < dotProductSegment2) {
+      return -1;
+    } else {
+      return 0;
     }
   }
 
@@ -1016,8 +1156,8 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
   /*  -----------------------  */
 
-  agentVelocityPlanner();
-
+  // agentVelocityPlanner();
+  agentVelocityPlannerV2();
   sceneEntities.forEach(function (item) {
     item.px = item.x + timestep * item.vx;
     item.pz = item.z + timestep * item.vz;
@@ -1028,7 +1168,11 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
 
 
 
-
+  let statusDict = {
+    collided: -1,
+    colliding : 0,
+    beforeCollision: 1
+  }
   let pbdIters = 0;
   let isColliding;
   let agent_a,
@@ -1105,8 +1249,18 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
         let vj = new THREE.Vector3(sceneEntities[j].vx, 0, sceneEntities[j].vz);
 
         // we need to use these 4 axes to find if they are separate or not
-        let axes = [vi, vj, getPerpendicular2DVector(vi), getPerpendicular2DVector(vj)];
+        // let axes = [vi, vj, getPerpendicular2DVector(vi), getPerpendicular2DVector(vj)];
+        // let axis_i = capsule_i.base.clone().sub(capsule_i.tip);
+        // let axis_j = capsule_j.base.clone().sub(capsule_j.tip);
+        let axis_i = sceneEntities[i].facing;
+        let axis_j = sceneEntities[j].facing;
+        // console.log()
+        let axes = [axis_i, axis_j, getPerpendicular2DVector(axis_i), getPerpendicular2DVector(axis_j)];
+        // console.log(axes);
         let ttc = [];
+        let tce = [];
+        let status = [];
+
         for (let k = 0; k<axes.length;k++){
           // check current axis
           let axis = axes[k];
@@ -1131,179 +1285,251 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
           let [head_i, tail_i] = determineHeadTail(pVel_i, base_i_, tip_i_, center_i_prime, center_j_prime);
           let [head_j, tail_j] = determineHeadTail(pVel_j, base_j_, tip_j_, center_j_prime, center_i_prime);
 
-          //verify the velocity direction condition
+          // verify the projected velocity direction
           let flag = checkVectorDirection(pVel_i, pVel_j)
 
-          let t;
+          let start_collision;
+          let end_collision;
+
           if(flag === -1){
-            t = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j)
+            // if two agent walk towards each other on projected axis
+            let head_position_flag = positionCheck(head_i, head_j, tail_j)
+            let tail_position_flag = positionCheck(tail_i, head_j, tail_j)
+
+            start_collision = timeToCollideVector3V2(head_i, pVel_i, head_j, pVel_j, head_position_flag)
+            end_collision = timeToCollideVector3V2(tail_i, pVel_i, tail_j, pVel_j, tail_position_flag)
+
+
           }else if(flag === 1){
+            // if two agent walk in same direction (chasing) on projected axis
 
-            let dir1 = tail_j.clone().sub(head_i);
-            let dir2 = tail_i.clone().sub(head_j);
+            let positionCondition = determineLeadingSegment(head_i, tail_i, head_j, tail_j, pVel_i.clone().normalize())
 
-            let dir_flag1 = checkVectorDirection(dir1, pVel_i);
-            let dir_flag2 = checkVectorDirection(dir2, pVel_i)
+            // determine who is leading, or overlapping
+            if(positionCondition === 1){
 
-            if(dir_flag1 === 1){
-              t = timeToCollideVector3(head_i, pVel_i, tail_j, pVel_j)
+              start_collision = timeToCollideVector3V2(head_j, pVel_i, tail_i, pVel_j)
+              end_collision = timeToCollideVector3V2(tail_j, pVel_i, head_i, pVel_j)
 
-            }else if(dir_flag2 === 1){
-              t = timeToCollideVector3(head_j, pVel_i, tail_i, pVel_j)
+            }else if(positionCondition === -1){
+
+              start_collision = timeToCollideVector3V2(head_i, pVel_i, tail_j, pVel_j)
+              end_collision = timeToCollideVector3V2(tail_i, pVel_i, head_j, pVel_j)
 
             }else {
-              t = null;
-              console.error("Same Walking Direction but velocity is different from the axis direction")
+              start_collision = 0;
+              end_collision = 0;
+
             }
 
           }else {
+            // at least one agent is not moving
 
-            if(pVel_i.length() < 0.001){
-              let t1 = timeToCollideVector3(head_j, pVel_j, head_i, pVel_i);
-              let t2 = timeToCollideVector3(head_j, pVel_j, tail_i, pVel_i);
+            if(pVel_i.length() <=0 && pVel_j.length() <=0){
+              // two agent both not moving, need to exam if they overlap or separate in this axis
+              let head_position_flag = positionCheck(head_i, head_j, tail_j)
+              let tail_position_flag = positionCheck(tail_i, head_j, tail_j)
 
-              if(t1<t2){
-                t= t1;
+              if(head_position_flag === 0 || tail_position_flag === 0){
+                start_collision = 0;
+                end_collision = 0;
               }else {
-                t = t2;
+                start_collision = null;
+                end_collision = null;
               }
 
-            }else if(pVel_j.length() < 0.001){
-              let t1 = timeToCollideVector3(head_i, pVel_i, head_j, pVel_j);
-              let t2 = timeToCollideVector3(head_i, pVel_i, tail_j, pVel_j);
+
+            }else if(pVel_i.length() <=0 && pVel_j.length() > 0){
+              // i does not move while j does
+
+              // start collision candidates
+              let head_position_flag = positionCheck(head_j, head_i, tail_i)
+
+              let t1 = timeToCollideVector3V2(head_j, pVel_j, head_i, pVel_i, head_position_flag);
+              let t2 = timeToCollideVector3V2(head_j, pVel_j, tail_i, pVel_i, head_position_flag);
+              // end collision candidates
+              let end_position_flag = positionCheck(tail_j, head_i, tail_i)
+
+              let t3 = timeToCollideVector3V2(tail_j, pVel_j, head_i, pVel_i, end_position_flag);
+              let t4 = timeToCollideVector3V2(tail_j, pVel_j, tail_i, pVel_i, end_position_flag);
 
               if(t1<t2){
-                t= t1;
+                start_collision = t1;
               }else {
-                t = t2;
+                start_collision = t2;
               }
+
+              if(t3>t4){
+                end_collision = t3;
+              }else {
+                end_collision = t4;
+              }
+
+            }else if(pVel_i.length() > 0 && pVel_j.length() <= 0){
+              // j does not move while i does
+
+
+              // start collision candidates
+              let head_position_flag = positionCheck(head_i, head_j, tail_j)
+
+              let t1 = timeToCollideVector3V2(head_i, pVel_i, head_j, pVel_j, head_position_flag);
+              let t2 = timeToCollideVector3V2(head_i, pVel_i, tail_j, pVel_j, head_position_flag);
+              // end collision candidates
+              let end_position_flag = positionCheck(tail_i, head_j, tail_j)
+
+              let t3 = timeToCollideVector3V2(tail_i, pVel_i, head_j, pVel_j, end_position_flag);
+              let t4 = timeToCollideVector3V2(tail_i, pVel_i, tail_j, pVel_j, end_position_flag);
+
+              if(t1<t2){
+                start_collision = t1;
+              }else {
+                start_collision = t2;
+              }
+
+              if(t3>t4){
+                end_collision = t3;
+              }else {
+                end_collision = t4;
+              }
+
             }else {
-              t= null;
-              console.error("Perpendicular Walking Direction but one projected velocity is not zero")
-
+              // both of them moving but this should not happen when projected velocity examination says at least one is not moving
+              start_collision = null;
+              end_collision = null;
+              throw new Error("Perpendicular Walking Direction but one projected velocity is not zero");
             }
 
           }
 
-          ttc.push(t);
+          ttc.push(start_collision);
+          tce.push(end_collision);
 
         }
 
         // console.log(ttc);
+        // calculate the ttc, time to collide and tce, time collide end
 
-        let expected_ttc = Math.max(...ttc)
-        console.log(expected_ttc);
+        let collision_flag = true;
+        let expected_ttc = Number.MIN_VALUE;
+        let expected_tce = Number.MAX_VALUE;
+        for (let idx = 0; idx<axes.length;idx++){
+          let e_ttc = ttc[idx];
+          let e_tce = tce[idx];
+
+          if(e_ttc === null || e_tce === null){
+            // never collide
+            collision_flag = false;
+            expected_ttc = null;
+            expected_tce = null;
+            break;
+
+          }else if(e_ttc <= 0 && e_tce >= 0){
+            // colliding now
+            collision_flag = collision_flag && true;
+            if(e_ttc === 0 && e_tce === 0){
+              continue;
+            }
+
+          }else if(0 < e_ttc && e_ttc <= e_tce){
+            // collide in future
+            collision_flag = collision_flag && true;
 
 
-        // let final_ttc = Math.floor(expected_ttc) + timestep
-        let final_ttc = expected_ttc
 
-        let final_i_x =  sceneEntities[i].x + final_ttc * sceneEntities[i].vx;
-        let final_i_z =  sceneEntities[i].z + final_ttc * sceneEntities[i].vz;
+          }else if(e_tce < 0){
+            // past collide
+            collision_flag = collision_flag && false;
 
-        let final_j_x =  sceneEntities[j].x + final_ttc * sceneEntities[j].vx;
-        let final_j_z =  sceneEntities[j].z + final_ttc * sceneEntities[j].vz;
 
-        let [bestA, bestB, agent_i, agent_j] = getBestPoint(final_i_x, final_i_z, final_j_x, final_j_z);
 
-        // short range collision
-        // didn't correct position in real time
-        let delta_i_x, delta_i_z, delta_j_x, delta_j_z;
+          }else {
+            // extra condition
+            throw new Error('Unmatched case e_ttc and e_tce');
+          }
 
-        let penetration_normal = bestA.clone().sub(bestB);
-        const len = penetration_normal.length();
-        penetration_normal.divideScalar(len); // normalize
-        const penetration_depth = sceneEntities[i].radius + sceneEntities[j].radius - len;
-        const intersects = penetration_depth > 0;
 
-        if (intersects) {
-          delta_i_x = penetration_normal.x * 0.5 * penetration_depth;
-          delta_i_z = penetration_normal.z * 0.5 * penetration_depth;
+          // find the most narrow interval to determine the actual collision interval
+          if (e_ttc > expected_ttc){
+            expected_ttc = e_ttc;
+          }
 
-          delta_j_x = -1 * penetration_normal.x * 0.5 * penetration_depth;
-          delta_j_z =  -1 * penetration_normal.z * 0.5 * penetration_depth;
-
-        }else {
-          delta_i_x = 0;
-          delta_i_z = 0;
-
-          delta_j_x = 0;
-          delta_j_z = 0;
+          if(e_tce < expected_tce){
+            expected_tce = e_tce;
+          }
 
         }
 
 
+        // console.log("start 2 end: " + expected_ttc + " --- " + expected_tce + " || " + collision_flag);
 
-        // longRangeConstraint(sceneEntities[i], sceneEntities[j], agentLength + RADIUS, agentLength + RADIUS )
-        // sceneEntities[i].sphere = bestA;
-        // sceneEntities[j].sphere = bestB;
-        //
-        // sceneEntities[i].px += delta_correction_i.x;
-        // sceneEntities[i].pz += delta_correction_i.y;
-        // sceneEntities[j].px += delta_correction_j.x;
-        // sceneEntities[j].pz += delta_correction_j.y;
-        //
-        //
-        // // for utilities
-        // sceneEntities[i].grad.x += grad_i[0];
-        // sceneEntities[i].grad.z += grad_i[1];
-        // sceneEntities[j].grad.x += grad_j[0];
-        // sceneEntities[j].grad.z += grad_j[1];
-        //
-        // sceneEntities[i].grad.s = s;
-        // sceneEntities[j].grad.s = s;
-        //
-        // sceneEntities[i].grad.dx += delta_correction_i.x;
-        // sceneEntities[i].grad.dz += delta_correction_i.y;
-        // sceneEntities[j].grad.dx += delta_correction_j.x;
-        // sceneEntities[j].grad.dz += delta_correction_j.y;
-        //
-        // customParams.best[i][j] = [bestA, bestB]
-        // customParams.best[j][i] = [bestB, bestA]
+        // throw new Error('First Time Error Stop');
 
-        // navigation
-        let expect_i_x = final_i_x + delta_i_x;
-        let expect_i_z =  final_i_z + delta_i_z * 50;
 
-        let expect_j_x =  final_j_x + delta_j_x;
-        let expect_j_z =  final_j_z + delta_j_z * 50;
+        if(collision_flag){
+          // all four axes can have chance to collide
+          let final_ttc = Math.floor(expected_ttc) + timestep
 
-        let expect_i = new THREE.Vector3(expect_i_x, 0, expect_i_z);
-        let expect_j = new THREE.Vector3(expect_j_x, 0, expect_j_z);
+          let final_i_x =  sceneEntities[i].x + final_ttc * sceneEntities[i].vx;
+          let final_i_z =  sceneEntities[i].z + final_ttc * sceneEntities[i].vz;
 
-        let goal_i = new THREE.Vector3(sceneEntities[i].back_goal_x, 0, sceneEntities[i].back_goal_z);
-        let goal_j = new THREE.Vector3(sceneEntities[j].back_goal_x, 0, sceneEntities[j].back_goal_z);
+          let final_j_x =  sceneEntities[j].x + final_ttc * sceneEntities[j].vx;
+          let final_j_z =  sceneEntities[j].z + final_ttc * sceneEntities[j].vz;
 
-        let current_i = new THREE.Vector3(sceneEntities[i].x, 0, sceneEntities[i].z);
-        let current_j = new THREE.Vector3(sceneEntities[j].x, 0, sceneEntities[j].z);
+          let [bestA, bestB, agent_i, agent_j] = getBestPoint(final_i_x, final_i_z, final_j_x, final_j_z);
 
-        let gi = goal_i.clone().sub(current_i);
-        let gj = goal_j.clone().sub(current_j);
+          // short range collision
+          // didn't correct position in real time
+          let delta_i_x, delta_i_z, delta_j_x, delta_j_z;
 
-        let ci = expect_i.clone().sub(current_i);
-        let cj = expect_j.clone().sub(current_j);
+          let penetration_normal = bestA.clone().sub(bestB);
+          const len = penetration_normal.length();
+          penetration_normal.divideScalar(len); // normalize
+          const penetration_depth = sceneEntities[i].radius + sceneEntities[j].radius - len;
+          const intersects = penetration_depth > 0;
 
-        let flag4 = checkVectorDirection(gi, ci)
-        let flag5 = checkVectorDirection(gj, cj)
+          if (intersects) {
+            delta_i_x = penetration_normal.x * 0.5 * penetration_depth;
+            delta_i_z = penetration_normal.z * 0.5 * penetration_depth;
 
-        if(flag4 === 1){
+            delta_j_x = -1 * penetration_normal.x * 0.5 * penetration_depth;
+            delta_j_z =  -1 * penetration_normal.z * 0.5 * penetration_depth;
+
+          }else {
+            delta_i_x = 0;
+            delta_i_z = 0;
+
+            delta_j_x = 0;
+            delta_j_z = 0;
+
+          }
+
+          let expect_i_x = final_i_x + delta_i_x;
+          let expect_i_z =  final_i_z + delta_i_z;
+
+          let expect_j_x =  final_j_x + delta_j_x;
+          let expect_j_z =  final_j_z + delta_j_z;
+
+          let expect_i = new THREE.Vector3(expect_i_x, 0, expect_i_z);
+          let expect_j = new THREE.Vector3(expect_j_x, 0, expect_j_z);
+
+
+
           sceneEntities[i].goal_x = expect_i.x;
           sceneEntities[i].goal_z = expect_i.z;
-
-        }else {
-          sceneEntities[i].goal_x = sceneEntities[i].back_goal_x;
-          sceneEntities[i].goal_z = sceneEntities[i].back_goal_z;
-        }
-
-
-        if(flag5 === 1){
           sceneEntities[j].goal_x = expect_j.x;
           sceneEntities[j].goal_z = expect_j.z;
 
-        }else {
+        }else{
+          // at least one axis is not collide
+          sceneEntities[i].goal_x = sceneEntities[i].back_goal_x;
+          sceneEntities[i].goal_z = sceneEntities[i].back_goal_z;
           sceneEntities[j].goal_x = sceneEntities[j].back_goal_x;
           sceneEntities[j].goal_z = sceneEntities[j].back_goal_z;
+
+
         }
+
+
 
 
         j += 1;
@@ -1324,6 +1550,12 @@ export function step(RADIUS, sceneEntities, world, scene, customParams = {}) {
     const dx = item.px - item.x;
     const dz = item.pz - item.z;
     item.agent.rotation.z = Math.atan2(dz, dx);
+    if(dx ===0 && dz === 0){
+
+    }else {
+      item.facing = new THREE.Vector3(dx, 0, dz);
+
+    }
 
     item.vx = (item.px - item.x) / timestep;
     item.vz = (item.pz - item.z) / timestep;
